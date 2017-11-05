@@ -143,25 +143,32 @@ defmodule C do
     from_jacobian(jacobian_add(to_jacobian(a), to_jacobian(b)))
   end
 
-  @spec get_pubkey_fromat(bitstring) :: String.t
-  def get_pubkey_fromat(key) do
+  @spec get_pubkey_format(charlist | String.t) :: String.t
+  def get_pubkey_format(key) do
     cond do
-      is_list(key) or is_tuple(key) ->
+      is_tuple(key) ->
         "decimal"
-      is_bitstring(key) ->
-        # bitstring e.g. << 1, 2 >>
-        size = byte_size(key)
+      is_list(key) ->
+        # charlist
+        size = length(key)
         cond do
           size == 65 and List.first(key) == 4 ->
             "bin"
-          size == 130 and String.slice(key, 0, 2) == << 0, 4>> -> 
-            "hex"
-          size == 33 and String.at(key, 0) in [ << 2 >>, << 3 >> ] ->
+          size == 33 and List.first(key) in [2, 3] ->
             "bin_compressed"
-          size == 66 and String.slice(key, 0, 2) in [ << 0, 2 >>, << 0, 3 >> ] ->
-            "hex_compressed"
           size == 64 ->
             "bin_electrum"
+          true -> 
+            raise "Pubkey not in regonized format"
+        end
+      is_bitstring(key) ->
+        # String key
+        size = byte_size(key)
+        cond do
+          size == 130 and String.slice(key, 0, 2) == "04" -> 
+            "hex"
+          size == 66 and String.slice(key, 0, 2) in ["02", "03"] ->
+            "hex_compressed"
           size == 128 ->
             "hex_electrum"
           true -> 
@@ -194,6 +201,45 @@ defmodule C do
         encode(one, 256, 32) ++ encode(two, 256, 32)
       "hex_electrum" ->
         encode(one, 16, 64) <> encode(two, 16, 64)
+      _ ->
+        raise "Invalid format #{format}"
+    end
+  end
+
+  @spec decode_pubkey(charlist | String.t, String.t) :: { non_neg_integer, non_neg_integer }
+  def decode_pubkey(pub, format \\ nil ) do
+    format = if is_nil(format) do
+      get_pubkey_format(pub)
+    else
+      format
+    end
+    case format do
+      "bin" ->
+        { decode(Enum.slice(pub, 1..32), 256), decode(Enum.slice(pub, 33..64), 256) }
+      "bin_compressed" ->
+        x = decode(Enum.slice(pub, 1..32), 256)        
+        beta = U.power(x*x*x + _a()*x + _b(), div(_p()+1, 4), @_p)
+        y = if U.mod(beta + Enum.at(pub, 0), 2) == 1 do
+          @_p - beta
+        else
+          beta
+        end
+        { x, y }
+      "hex" -> 
+        { decode(String.slice(pub, 2..65), 16), decode(String.slice(pub, 66..129), 16) }
+      "hex_compressed" ->
+        x = decode(String.slice(pub, 2..65), 16)
+        beta = U.power(x*x*x + _a()*x + _b(), div(_p()+1, 4), @_p)
+        y = if U.mod(beta + Enum.at(String.to_charlist(pub), 0), 2) == 1 do
+          @_p - beta
+        else
+          beta
+        end
+        { x, y }
+      "bin_electrum" ->
+        { decode(Enum.slice(pub, 0..31), 256), decode(Enum.slice(pub, 32..63), 256) }
+      "hex_electrum" ->
+        { decode(String.slice(pub, 0..63), 16), decode(String.slice(pub, 64..127), 16) }
       _ ->
         raise "Invalid format #{format}"
     end

@@ -21,6 +21,9 @@ defmodule CTest do
       1964903306}
   end
 
+  #
+  # encoding and decoding basics
+  #
   test "encode should work for base 256" do
     assert C.encode(@prime_70, 256) == [173, 51, 199, 177, 216, 177, 196, 183, 192, 150, 220, 234, 57, 145, 219, 154, 51, 37, 6, 178, 9, 206, 152, 144, 33, 128, 108, 106, 75]
   end
@@ -81,34 +84,92 @@ defmodule CTest do
   @pub_key_tup {55066263022277343669578718895168534326250603453777594175500187360389116729240, \
            32670510020758816978083085130507043184471273380659243275938904335757337482424}
 
+  #
+  # hex codec
+  #
   test "encode_pubkey should work for hex encoding" do
     assert C.encode_pubkey(@pub_key_tup, "hex") == \
       "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
   end
 
+  test "decode_pubkey should work for hex encoding" do
+    assert C.decode_pubkey(
+      "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8",
+      "hex") == \
+      @pub_key_tup    
+  end
+
+  #
+  # bin codec
+  #
   test "encode_pubkey should work for bin encoding" do
     assert C.encode_pubkey(@pub_key_tup, "bin") == \
       [4, 121, 190, 102, 126, 249, 220, 187, 172, 85, 160, 98, 149, 206, 135, 11, 7, 2, 155, 252, 219, 45, 206, 40, 217, 89, 242, 129, 91, 22, 248, 23, 152, 72, 58, 218, 119, 38, 163, 196, 101, 93, 164, 251, 252, 14, 17, 8, 168, 253, 23, 180, 72, 166, 133, 84, 25, 156, 71, 208, 143, 251, 16, 212, 184]
   end
 
+  test "decode_pubkey should work for bin encoding" do
+    assert C.decode_pubkey(
+      [4, 121, 190, 102, 126, 249, 220, 187, 172, 85, 160, 98, 149, 206, 135, 11, 7, 2, 155, 252, 219, 45, 206, 40, 217, 89, 242, 129, 91, 22, 248, 23, 152, 72, 58, 218, 119, 38, 163, 196, 101, 93, 164, 251, 252, 14, 17, 8, 168, 253, 23, 180, 72, 166, 133, 84, 25, 156, 71, 208, 143, 251, 16, 212, 184],
+      "bin") == @pub_key_tup
+  end
+
+  #
+  # bin_compressed codec
+  #
   test "encode_pubkey should work for bin_compressed encoding" do
     assert C.encode_pubkey(@pub_key_tup, "bin_compressed") == \
       [2, 121, 190, 102, 126, 249, 220, 187, 172, 85, 160, 98, 149, 206, 135, 11, 7, 2, 155, 252, 219, 45, 206, 40, 217, 89, 242, 129, 91, 22, 248, 23, 152]
   end
 
+  test "decode_pubkey should work for bin_compressed" do
+    assert C.decode_pubkey(
+      [2, 121, 190, 102, 126, 249, 220, 187, 172, 85, 160, 98, 149, 206, 135, 11, 7, 2, 155, 252, 219, 45, 206, 40, 217, 89, 242, 129, 91, 22, 248, 23, 152],
+      "bin_compressed" ) == @pub_key_tup
+  end
+
+  #
+  # hex_compressed codec
+  #
   test "encode_pubkey should work for hex_compressed encoding" do
     assert C.encode_pubkey(@pub_key_tup, "hex_compressed") == \
       "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
   end
 
+  test "decode_pubkey should work for hex_compressed" do
+    assert C.decode_pubkey(
+      "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 
+      "hex_compressed" 
+      ) == @pub_key_tup
+  end
+
+  #
+  # bin_electrum codec
+  #
   test "encode_pubkey should work for bin_electrum encoding" do
     assert C.encode_pubkey(@pub_key_tup, "bin_electrum") == \
       [121, 190, 102, 126, 249, 220, 187, 172, 85, 160, 98, 149, 206, 135, 11, 7, 2, 155, 252, 219, 45, 206, 40, 217, 89, 242, 129, 91, 22, 248, 23, 152, 72, 58, 218, 119, 38, 163, 196, 101, 93, 164, 251, 252, 14, 17, 8, 168, 253, 23, 180, 72, 166, 133, 84, 25, 156, 71, 208, 143, 251, 16, 212, 184]
   end
 
+  test "decode_pubkey should work for bin_electrum" do
+    assert C.decode_pubkey(
+      [121, 190, 102, 126, 249, 220, 187, 172, 85, 160, 98, 149, 206, 135, 11, 7, 2, 155, 252, 219, 45, 206, 40, 217, 89, 242, 129, 91, 22, 248, 23, 152, 72, 58, 218, 119, 38, 163, 196, 101, 93, 164, 251, 252, 14, 17, 8, 168, 253, 23, 180, 72, 166, 133, 84, 25, 156, 71, 208, 143, 251, 16, 212, 184],
+      "bin_electrum"
+      ) == @pub_key_tup
+  end
+
+  #
+  # hex_electrum codec
+  #
   test "encode_pubkey should work for hex_electrum encoding" do
     assert C.encode_pubkey(@pub_key_tup, "hex_electrum") == \
       "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+  end
+
+  test "decode_pubkey should work for hex_electrum" do
+    assert C.decode_pubkey(
+      "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8",
+      "hex_electrum"
+      ) == @pub_key_tup
   end
 
   test "encode_pubkey should raise error" do
