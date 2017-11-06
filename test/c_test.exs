@@ -85,21 +85,6 @@ defmodule CTest do
            32670510020758816978083085130507043184471273380659243275938904335757337482424}
 
   #
-  # hex codec
-  #
-  test "encode_pubkey should work for hex encoding" do
-    assert C.encode_pubkey(@pub_key_tup, "hex") == \
-      "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
-  end
-
-  test "decode_pubkey should work for hex encoding" do
-    assert C.decode_pubkey(
-      "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8",
-      "hex") == \
-      @pub_key_tup    
-  end
-
-  #
   # bin codec
   #
   test "encode_pubkey should work for bin encoding" do
@@ -125,6 +110,21 @@ defmodule CTest do
     assert C.decode_pubkey(
       [2, 121, 190, 102, 126, 249, 220, 187, 172, 85, 160, 98, 149, 206, 135, 11, 7, 2, 155, 252, 219, 45, 206, 40, 217, 89, 242, 129, 91, 22, 248, 23, 152],
       "bin_compressed" ) == @pub_key_tup
+  end
+
+  #
+  # hex codec
+  #
+  test "encode_pubkey should work for hex encoding" do
+    assert C.encode_pubkey(@pub_key_tup, "hex") == \
+      "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+  end
+
+  test "decode_pubkey should work for hex encoding" do
+    assert C.decode_pubkey(
+      "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8",
+      "hex") == \
+      @pub_key_tup    
   end
 
   #

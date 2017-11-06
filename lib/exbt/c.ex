@@ -179,6 +179,54 @@ defmodule C do
     end
   end
 
+  def get_privkey_format(key) do
+    cond do
+      is_number(key) ->
+        "decimal"
+      is_list(key) ->
+        size = length(key)
+        case size do
+          32 -> "bin"
+          33 -> "bin_compressed"
+          64 -> "hex"
+          66 -> "hex_compressed"
+          _  ->
+            bin_p = b58check_to_bin(key)
+            case length(bin_p) do
+              32 -> "wif"
+              33 -> "wif_compressed"
+              _ -> raise "WIF does not represent private key"
+            end
+        end
+    end
+  end
+
+  @spec b58check_to_bin(charlist) :: charlist
+  def b58check_to_bin(key) do
+    leadingzbytes = case Regex.named_captures(~r/^(?<ones>1*)/, key) do
+      %{ "ones" => d } -> 
+        String.length(d)
+      _ -> 
+        0
+    end
+    data = [ 0 ] ++ U.replicate(0, leadingzbytes) ++ changebase(key, 58, 256)
+    size = length(data)            
+    if String.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1) do
+      Enum.slice(data, 1..size-5)
+    else
+      raise "Assertion failed for fin_double_sha256 #{key}"
+    end      
+  end
+  
+  @doc """
+  return hexdigest instead of binary digest
+  """
+  @spec bin_double_sha256(charlist) :: charlist
+  def bin_double_sha256(chars) do
+    hash = :crypto.hash(:sha256, chars)
+    :crypto.hash(:sha256, hash)
+  end
+
   @doc """
   if encoding base is 256, return a charlist
   else return a String.t
@@ -324,6 +372,23 @@ defmodule C do
         String.to_charlist(val)
     end
     _decode(char_list, base, code_str, 0)
+  end
+
+  def lpad(msg, symbol, len) do
+    if String.length(msg) >= len do
+      msg
+    else
+      U.replicate(len - String.length(msg), symbol) <> msg
+    end
+  end
+
+  def changebase(str, from, to, minlen \\ 0) do
+    cond do
+      from == to ->
+        lpad(str, String.at(List.to_string(get_code_string(from)), 0), minlen)
+      true -> 
+        encode(decode(str, from), to, minlen)
+    end
   end
 
 end

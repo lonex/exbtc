@@ -1,8 +1,11 @@
 defmodule U do
   use Bitwise
 
-  def replicate(n, x) do
+  def replicate(n, x) when is_number(x) do
     for _ <- 1..n, do: x 
+  end
+  def replicate(n, s) when is_bitstring(s) do
+  	Enum.map_join(1..n, fn _ -> s end)
   end
 
   @doc """
