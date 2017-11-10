@@ -209,9 +209,9 @@ defmodule C do
       _ -> 
         0
     end
-    data = [ 0 ] ++ U.replicate(0, leadingzbytes) ++ changebase(key, 58, 256)
-    size = length(data)            
-    if String.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1) do
+    data = U.replicate(0, leadingzbytes) ++ changebase(key, 58, 256)
+    size = length(data)      
+    if Enum.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1) do
       Enum.slice(data, 1..size-5)
     else
       raise "Assertion failed for fin_double_sha256 #{key}"
@@ -224,7 +224,8 @@ defmodule C do
   @spec bin_double_sha256(charlist) :: charlist
   def bin_double_sha256(chars) do
     hash = :crypto.hash(:sha256, chars)
-    :crypto.hash(:sha256, hash)
+    # hash is <<118, 134, ... >> 
+    :binary.bin_to_list(:crypto.hash(:sha256, hash))
   end
 
   @doc """
