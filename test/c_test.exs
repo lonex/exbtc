@@ -175,5 +175,34 @@ defmodule CTest do
   test "encode_pubkey should raise error" do
     assert_raise RuntimeError, ~r/Invalid format/, fn -> C.encode_pubkey(@pub_key_tup, "foo") end
   end
+
+  #
+  # private key encoding decoding
+  #
+  @private_key_hex            "3aba4162c7251c891207b747840551a71939b0de081f85c4e44cf7c13e41daa6"
+  @private_key 26563230048437957592232553826663696440606756685920117476832299673293013768870
+  @private_key_wif            "5JG9hT3beGTJuUAmCQEmNaxAuMacCTfXuw1R3FCXig23RQHMr4K"
+  @private_key_wif_compressed "KyBsPXxTuVD82av65KZkrGrWi5qLMah5SdNq6uftawDbgKa2wv6S"
+
+  test "decode_privkey from hex" do
+    assert C.decode_privkey(@private_key_hex, "hex") == \
+      @private_key
+  end
+
+  test "encode_privkey to wif" do
+    assert C.encode_privkey(@private_key, "wif") == @private_key_wif
+  end
+
+  test "encode_privkey hex_compressed" do
+    assert C.encode_privkey(@private_key, "hex_compressed") == @private_key_hex <> "01"
+  end
+
+  test "encode_privkey for wif_compressed" do
+    assert C.encode_privkey(@private_key, "wif_compressed") == @private_key_wif_compressed
+  end
+
+  test "decode_privkey from wif" do
+    assert C.decode_privkey(@private_key_wif, "wif") == @private_key
+  end
 end
 

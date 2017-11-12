@@ -179,6 +179,7 @@ defmodule C do
     end
   end
 
+  @spec get_privkey_format(charlist | non_neg_integer) :: String.t
   def get_privkey_format(key) do
     cond do
       is_number(key) ->
@@ -201,6 +202,57 @@ defmodule C do
     end
   end
 
+  @spec decode_privkey(non_neg_integer | charlist | String.t, String.t) :: non_neg_integer
+  def decode_privkey(key, format \\ nil) do
+    format = if is_nil(format) do
+      get_privkey_format(key)
+    else 
+      format
+    end
+    case format do
+      "decimal" ->
+        key
+      "bin" ->
+        decode(key, 256)
+      "bin_compressed" ->
+        decode(Enum.slice(key, 0..31), 256)
+      "hex" ->
+        decode(key, 16)
+      "hex_compressed" ->
+        decode(String.slice(key, 0..63), 16)
+      "wif" ->
+        decode(b58check_to_bin(key), 256)
+      "wif_compressed" ->
+        decode(Enum.slice(b58check_to_bin(key), 0..31), 256)
+      _ -> 
+        raise "WIF does not represent privkey"
+    end
+  end
+
+  @spec encode_privkey(non_neg_integer | charlist | String.t, String.t, integer) :: charlist | String.t
+  def encode_privkey(key, format, vbyte \\ 0) do
+    cond do
+      not is_number(key) ->
+        encode_privkey(decode_privkey(key), format, vbyte)
+      format == "decimal" ->
+        key
+      format == "bin" ->
+        encode(key, 256, 32)
+      format == "bin_compressed" ->
+        encode(key, 256, 32) ++ [ 1 ]
+      format == "hex" ->
+        encode(key, 16, 64)
+      format == "hex_compressed" ->
+        encode(key, 16, 64) <> "01"
+      format == "wif" ->
+        bin_to_b58check(encode(key, 256, 32), 128 + vbyte)
+      format == "wif_compressed" ->
+        bin_to_b58check(encode(key, 256, 32) ++ [1], 128 + vbyte)
+      true -> 
+        raise "not implemented"
+    end
+  end
+
   @spec b58check_to_bin(charlist) :: charlist
   def b58check_to_bin(key) do
     leadingzbytes = case Regex.named_captures(~r/^(?<ones>1*)/, key) do
@@ -209,7 +261,7 @@ defmodule C do
       _ -> 
         0
     end
-    data = U.replicate(0, leadingzbytes) ++ changebase(key, 58, 256)
+    data = U.replicate(leadingzbytes, 0) ++ changebase(key, 58, 256)
     size = length(data)      
     if Enum.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1) do
       Enum.slice(data, 1..size-5)
@@ -217,7 +269,33 @@ defmodule C do
       raise "Assertion failed for fin_double_sha256 #{key}"
     end      
   end
+
+
+  def _bin_to_b58check(chars, 0), do: [ 0 ] ++ chars
+  def _bin_to_b58check(chars, magic_byte) do
+    r = U.mod(magic_byte, 256)
+    magic_byte = div(magic_byte, 256)
+    cond do
+      magic_byte > 0 ->
+        _bin_to_b58check([ r ] ++ chars, magic_byte)
+      true -> 
+        [ r ] ++ chars
+    end
+  end
   
+  @spec bin_to_b58check(charlist, integer) :: charlist
+  def bin_to_b58check(chars, magic_byte \\ 0) do
+    chars = _bin_to_b58check(chars, magic_byte)
+    leadingzbytes = case Enum.find_index(chars, fn x -> x != 0 end) do
+      nil -> 
+        0
+      idx ->
+        idx
+    end
+    checksum = Enum.slice(bin_double_sha256(chars), 0..3)
+    U.replicate(leadingzbytes, "1") <> changebase(chars ++ checksum, 256, 58)
+  end
+
   @doc """
   return hexdigest instead of binary digest
   """
