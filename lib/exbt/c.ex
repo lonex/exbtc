@@ -204,11 +204,7 @@ defmodule C do
 
   @spec decode_privkey(non_neg_integer | charlist | String.t, String.t) :: non_neg_integer
   def decode_privkey(key, format \\ nil) do
-    format = if is_nil(format) do
-      get_privkey_format(key)
-    else 
-      format
-    end
+    format = format || get_privkey_format(key)
     case format do
       "decimal" ->
         key
@@ -335,11 +331,7 @@ defmodule C do
 
   @spec decode_pubkey(charlist | String.t, String.t) :: { non_neg_integer, non_neg_integer }
   def decode_pubkey(pub, format \\ nil ) do
-    format = if is_nil(format) do
-      get_pubkey_format(pub)
-    else
-      format
-    end
+    format = format || get_pubkey_format(pub)
     case format do
       "bin" ->
         { decode(Enum.slice(pub, 1..32), 256), decode(Enum.slice(pub, 33..64), 256) }
