@@ -14,11 +14,13 @@ defmodule C do
   def b, do: 7
   def _b, do: b()
 
-  def g_x, do: 55066263022277343669578718895168534326250603453777594175500187360389116729240
-  def g_y, do: 32670510020758816978083085130507043184471273380659243275938904335757337482424
+  @_g_x 55066263022277343669578718895168534326250603453777594175500187360389116729240
+  @_g_y 32670510020758816978083085130507043184471273380659243275938904335757337482424
+  @_g { @_g_x, @_g_y }
+  def g_x, do: @_g_x
+  def g_y, do: @_g_y
   def g, do: {g_x(), g_y()}
   def _g, do: g()
-
 
   def _inv(n, lm, _, low, _) when low <= 1, do: U.mod(lm, n)
   def _inv(n, lm, hm, low, high) do
@@ -184,8 +186,12 @@ defmodule C do
     cond do
       is_number(key) ->
         "decimal"
-      is_list(key) ->
-        size = length(key)
+      is_list(key) or is_bitstring(key) ->
+        size = if is_list(key) do 
+          length(key)
+        else
+          String.length(key)
+        end
         case size do
           32 -> "bin"
           33 -> "bin_compressed"
@@ -199,6 +205,8 @@ defmodule C do
               _ -> raise "WIF does not represent private key"
             end
         end
+      true ->
+        raise "Invalid private key format"
     end
   end
 
@@ -249,57 +257,31 @@ defmodule C do
     end
   end
 
-  @spec b58check_to_bin(charlist) :: charlist
-  def b58check_to_bin(key) do
-    leadingzbytes = case Regex.named_captures(~r/^(?<ones>1*)/, key) do
-      %{ "ones" => d } -> 
-        String.length(d)
-      _ -> 
-        0
-    end
-    data = U.replicate(leadingzbytes, 0) ++ changebase(key, 58, 256)
-    size = length(data)      
-    if Enum.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1) do
-      Enum.slice(data, 1..size-5)
+  @spec add_pubkeys(charlist | String.t, charlist | String.t) :: charlist | String.t
+  def add_pubkeys(p1, p2) do
+    { format1, format2 } = { get_pubkey_format(p1), get_pubkey_format(p2) }
+    encode_pubkey(fast_add(decode_pubkey(p1, format1), decode_pubkey(p2, format2)), format1)
+  end
+
+  def add_privkeys(p1, p2) do
+    { format1, format2 }= { get_privkey_format(p1), get_privkey_format(p2) }
+    encode_privkey(U.mod(decode_privkey(p1, format1) + decode_privkey(p2, format2), @_n), format1)
+  end
+
+  def multiply_privkeys(p1, p2) do
+    { format1, format2 }= { get_privkey_format(p1), get_privkey_format(p2) }
+    encode_privkey(U.mod(decode_privkey(p1, format1) * decode_privkey(p2, format2), @_n), format1)    
+  end
+
+  def privkey_to_pubkey(key) do
+    format = get_privkey_format(key)
+    decoded_key = decode_privkey(key, format)
+    decoded_key < @_n or raise "Invalid private key"
+    if format in ["bin", "bin_compressed", "hex", "hex_compressed", "decimal"] do
+      encode_pubkey(fast_multiply(@_g, decoded_key), format)
     else
-      raise "Assertion failed for fin_double_sha256 #{key}"
-    end      
-  end
-
-
-  def _bin_to_b58check(chars, 0), do: [ 0 ] ++ chars
-  def _bin_to_b58check(chars, magic_byte) do
-    r = U.mod(magic_byte, 256)
-    magic_byte = div(magic_byte, 256)
-    cond do
-      magic_byte > 0 ->
-        _bin_to_b58check([ r ] ++ chars, magic_byte)
-      true -> 
-        [ r ] ++ chars
+      encode_pubkey(fast_multiply(@_g, decoded_key), String.replace(format, "wif", "hex"))
     end
-  end
-  
-  @spec bin_to_b58check(charlist, integer) :: charlist
-  def bin_to_b58check(chars, magic_byte \\ 0) do
-    chars = _bin_to_b58check(chars, magic_byte)
-    leadingzbytes = case Enum.find_index(chars, fn x -> x != 0 end) do
-      nil -> 
-        0
-      idx ->
-        idx
-    end
-    checksum = Enum.slice(bin_double_sha256(chars), 0..3)
-    U.replicate(leadingzbytes, "1") <> changebase(chars ++ checksum, 256, 58)
-  end
-
-  @doc """
-  return hexdigest instead of binary digest
-  """
-  @spec bin_double_sha256(charlist) :: charlist
-  def bin_double_sha256(chars) do
-    hash = :crypto.hash(:sha256, chars)
-    # hash is <<118, 134, ... >> 
-    :binary.bin_to_list(:crypto.hash(:sha256, hash))
   end
 
   @doc """
@@ -367,7 +349,76 @@ defmodule C do
   ###############
   # common
   ###############
+
+  @spec pubkey_to_address({non_neg_integer, non_neg_integer} | String.t, non_neg_integer) :: String.t
+  def pubkey_to_address(key, magicbyte \\ 0) do
+    key = if is_tuple(key) do
+      encode_pubkey(key, "bin")
+    else
+      format = get_pubkey_format(key)
+      encode_pubkey(decode_pubkey(key, format), "bin")
+    end
+    bin_to_b58check(bin_hash160(key), magicbyte)
+  end
+
+  @spec bin_hash160(charlist) :: charlist
+  def bin_hash160(chars) do
+    tmp = :crypto.hash(:sha256, chars)
+    :binary.bin_to_list(:crypto.hash(:ripemd160, tmp))
+  end
+
+  @spec b58check_to_bin(charlist) :: charlist
+  def b58check_to_bin(key) do
+    leadingzbytes = case Regex.named_captures(~r/^(?<ones>1*)/, key) do
+      %{ "ones" => d } -> 
+        String.length(d)
+      _ -> 
+        0
+    end
+    data = U.replicate(leadingzbytes, 0) ++ changebase(key, 58, 256)
+    size = length(data)      
+    if Enum.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1) do
+      Enum.slice(data, 1..size-5)
+    else
+      raise "Assertion failed for fin_double_sha256 #{key}"
+    end      
+  end
+
+  def _bin_to_b58check(chars, 0), do: [ 0 ] ++ chars
+  def _bin_to_b58check(chars, magic_byte) do
+    r = U.mod(magic_byte, 256)
+    magic_byte = div(magic_byte, 256)
+    cond do
+      magic_byte > 0 ->
+        _bin_to_b58check([ r ] ++ chars, magic_byte)
+      true -> 
+        [ r ] ++ chars
+    end
+  end
   
+  @spec bin_to_b58check(charlist, integer) :: charlist
+  def bin_to_b58check(chars, magic_byte \\ 0) do
+    chars = _bin_to_b58check(chars, magic_byte)
+    leadingzbytes = case Enum.find_index(chars, fn x -> x != 0 end) do
+      nil -> 
+        0
+      idx ->
+        idx
+    end
+    checksum = Enum.slice(bin_double_sha256(chars), 0..3)
+    U.replicate(leadingzbytes, "1") <> changebase(chars ++ checksum, 256, 58)
+  end
+
+  @doc """
+  return hexdigest instead of binary digest
+  """
+  @spec bin_double_sha256(charlist) :: charlist
+  def bin_double_sha256(chars) do
+    hash = :crypto.hash(:sha256, chars)
+    # hash is <<118, 134, ... >> 
+    :binary.bin_to_list(:crypto.hash(:sha256, hash))
+  end
+
   @code_strings %{ 
       2 => '01',
       10 => '0123456789',
