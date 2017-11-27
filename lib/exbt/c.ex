@@ -273,6 +273,7 @@ defmodule C do
     encode_privkey(U.mod(decode_privkey(p1, format1) * decode_privkey(p2, format2), @_n), format1)    
   end
 
+  @spec privkey_to_pubkey(charlist | String.t) :: String.t | charlist
   def privkey_to_pubkey(key) do
     format = get_privkey_format(key)
     decoded_key = decode_privkey(key, format)
@@ -282,6 +283,39 @@ defmodule C do
     else
       encode_pubkey(fast_multiply(@_g, decoded_key), String.replace(format, "wif", "hex"))
     end
+  end
+
+  @spec privkey_to_pubkey(charlist | String.t) :: String.t | charlist
+  def privkey_to_address(key, magicbyte \\ 0) do
+    pubkey_to_address(privkey_to_pubkey(key), magicbyte)
+  end
+
+  @spec neg_pubkey(charlist | String.t) :: charlist | String.t
+  def neg_pubkey(key) do
+    format = get_pubkey_format(key)
+    pk = decode_pubkey(key, format)
+    encode_pubkey({ elem(pk, 0), U.mod(@_p - elem(pk, 1), @_p) }, format)
+  end
+
+  @spec neg_privkey(charlist | String.t | non_neg_integer) :: charlist | String.t
+  def neg_privkey(key) do
+    format = get_privkey_format(key)
+    pk = decode_privkey(key, format)
+    encode_privkey(U.mod(@_n - pk, @_n), format)
+  end
+
+  @spec subtract_pubkeys(charlist | String.t, charlist | String.t) :: charlist | String.t
+  def subtract_pubkeys(p1, p2) do
+    { format1, format2 } = { get_pubkey_format(p1), get_pubkey_format(p2) }
+    k = decode_pubkey(p2, format2)
+    encode_pubkey(fast_add(decode_pubkey(p1, format1), {elem(k, 0), U.mod(@_p - elem(k, 1), @_p)}), format1)
+  end
+
+  @spec subtract_privkey(charlist | String.t | non_neg_integer, charlist | String.t | non_neg_integer) :: charlist | String.t | non_neg_integer
+  def subtract_privkey(p1, p2) do
+    { format1, format2 } = { get_privkey_format(p1), get_privkey_format(p2) }
+    k = decode_privkey(p2, format2)
+    encode_privkey(U.mod(decode_privkey(p1, format1) - k, @_n), format1)
   end
 
   @doc """
@@ -350,7 +384,7 @@ defmodule C do
   # common
   ###############
 
-  @spec pubkey_to_address({non_neg_integer, non_neg_integer} | String.t, non_neg_integer) :: String.t
+  @spec pubkey_to_address({non_neg_integer, non_neg_integer} | String.t | charlist, non_neg_integer) :: String.t
   def pubkey_to_address(key, magicbyte \\ 0) do
     key = if is_tuple(key) do
       encode_pubkey(key, "bin")
@@ -365,6 +399,11 @@ defmodule C do
   def bin_hash160(chars) do
     tmp = :crypto.hash(:sha256, chars)
     :binary.bin_to_list(:crypto.hash(:ripemd160, tmp))
+  end
+
+  @spec bin_sha256(charlist) :: charlist
+  def bin_sha256(chars) do
+    :binary.bin_to_list(:crypto.hash(:sha256, chars))
   end
 
   @spec b58check_to_bin(charlist) :: charlist

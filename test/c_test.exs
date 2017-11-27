@@ -84,6 +84,7 @@ defmodule CTest do
     pubkey = "025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec"
     assert C.pubkey_to_address(pubkey) == @address
   end
+
   #
   # public key encoding decoding
   #
@@ -181,6 +182,26 @@ defmodule CTest do
 
   test "encode_pubkey should raise error" do
     assert_raise RuntimeError, ~r/Invalid format/, fn -> C.encode_pubkey(@pub_key_tup, "foo") end
+  end
+
+  # 
+  # others
+  # 
+
+  test "subtract 2 public keys" do
+    assert C.subtract_pubkeys("025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec", 
+      "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798") == \
+      "03581f559d90fbbe9c7d1bc4ff64bd4370401246ec7042c2ec090cf464551409c9"
+  end
+
+  test "substract 2 private key" do
+    assert C.subtract_privkey("5JVdJMkndw693WKZaa6gkrbGmnC65DU57axwdfwY8ms58H7JDB2", @private_key_wif) 
+      == @private_key_2_wif 
+  end
+
+  test "bin_sha256 works" do
+     C.bin_sha256([30, 153, 66, 58, 78, 210, 118, 8, 161, 90, 38, 22, 162, 176, 233, 229, 44, 237, 51, 10, 197, 48, 237, 204, 50, 200, 255, 198, 165, 38, 174, 221, 1]) 
+       == [15, 242, 75, 80, 107, 229, 49, 241, 63, 101, 96, 146, 97, 132, 114, 148, 221, 146, 2, 34, 143, 136, 61, 120, 5, 180, 33, 106, 42, 17, 244, 27]     
   end
 
   #
