@@ -1,4 +1,4 @@
-defmodule U do
+defmodule Exbtc.U do
   use Bitwise
 
   # replicates x, n times

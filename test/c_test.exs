@@ -1,6 +1,7 @@
-defmodule CTest do
+defmodule Exbtc.CTest do
 	use ExUnit.Case
-
+  alias Exbtc.C, as: C
+  
   @prime_20 36413321723440003717
   @prime_70 4669523849932130508876392554713407521319117239637943224980015676156491
 

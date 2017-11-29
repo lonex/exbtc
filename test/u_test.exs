@@ -1,5 +1,7 @@
-defmodule UTest do
+defmodule Exbtc.UTest do
   use ExUnit.Case
+  alias Exbtc.C, as: C
+  alias Exbtc.U, as: U
 
   test "power function work for big ints" do
   	assert U.power(
@@ -9,6 +11,6 @@ defmodule UTest do
   end
 
   test "power function raise error on negative power" do
-  	assert_raise FunctionClauseError, ~r/no function clause matching in U.power/, fn -> U.power(2, -1, 2) end
+  	assert_raise FunctionClauseError, ~r/no function clause matching in Exbtc.U.power/, fn -> U.power(2, -1, 2) end
   end
 end
