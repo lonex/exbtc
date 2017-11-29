@@ -1,4 +1,4 @@
-# Exbt
+# Exbtc
 
 **TODO: Add description**
 
@@ -10,7 +10,7 @@ by adding `exbt` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:exbt, "~> 0.1.0"}
+    {:exbtc, "~> 0.1.0"}
   ]
 end
 ```

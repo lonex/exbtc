@@ -1,9 +1,9 @@
-defmodule Exbt.Mixfile do
+defmodule Exbtc.Mixfile do
   use Mix.Project
 
   def project do
     [
-      app: :exbt,
+      app: :exbtc,
       description: "Bitcoin Exlixir port",
       # package: package,
       version: "0.1.0",

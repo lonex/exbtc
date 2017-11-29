@@ -10,11 +10,11 @@ use Mix.Config
 
 # You can configure your application as:
 #
-#     config :exbt, key: :value
+#     config :exbtc, key: :value
 #
 # and access this configuration in your application as:
 #
-#     Application.get_env(:exbt, :key)
+#     Application.get_env(:exbtc, :key)
 #
 # You can also configure a 3rd-party app:
 #

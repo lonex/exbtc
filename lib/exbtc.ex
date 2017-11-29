@@ -1,7 +1,7 @@
-defmodule Exbt do
+defmodule Exbtc do
 
   @moduledoc """
-  Documentation for Exbt.
+  Documentation for Exbtc.
   """
 
   @doc """
@@ -9,7 +9,7 @@ defmodule Exbt do
 
   ## Examples
 
-      iex> Exbt.hello
+      iex> Exbtc.hello
       :world
 
   """
