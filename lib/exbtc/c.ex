@@ -1,5 +1,5 @@
 defmodule Exbtc.C do
-  alias Exbtc.U, as: U
+  alias Exbtc.U
 
   # p = 2 ^ 256 - 2 ^ 32 - 977
   @_p 115792089237316195423570985008687907853269984665640564039457584007908834671663 
@@ -11,9 +11,12 @@ defmodule Exbtc.C do
   def n, do: @_n
   def _n, do: @_n
 
-  def a, do: 0
+  @_a 0
+  def a, do: @_a
   def _a, do: a()
-  def b, do: 7
+
+  @_b 7
+  def b, do: @_b
   def _b, do: b()
 
   @_g_x 55066263022277343669578718895168534326250603453777594175500187360389116729240
@@ -273,6 +276,18 @@ defmodule Exbtc.C do
   def multiply_privkeys(p1, p2) do
     { format1, format2 }= { get_privkey_format(p1), get_privkey_format(p2) }
     encode_privkey(U.mod(decode_privkey(p1, format1) * decode_privkey(p2, format2), @_n), format1)    
+  end
+
+  @spec multiply(charlist | String.t, charlist | String.t) :: charlist | String.t
+  def multiply(pubkey, privkey) do
+    { format1, format2 } = { get_pubkey_format(pubkey), get_privkey_format(privkey) }
+    { pubkey, privkey } = { decode_pubkey(pubkey, format1), decode_privkey(privkey, format2) }
+    { pub0, pub1 } = pubkey
+    if not is_inf(pubkey) and U.mod(U.power(pub0, 3) + @_b - pub1 * pub1, @_p) != 0 do
+      raise "Point not on curve"
+    else 
+      encode_pubkey(fast_multiply(pubkey, privkey), format1)
+    end
   end
 
   @spec privkey_to_pubkey(charlist | String.t) :: String.t | charlist
