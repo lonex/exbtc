@@ -210,6 +210,21 @@ defmodule Exbtc.CTest do
       == "02965afb5335cdaf9fcf4c5b67e976b87413e8a4a022d7f163928d8af7d652c9a9"
   end
 
+  test "compress hex pubkey" do
+    assert C.compress("0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8") 
+      == "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+  end
+
+  test "decompress hex_compress pubkey" do
+    assert C.decompress("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798") 
+      == "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+  end
+
+
+  test "bin_slowsha works" do
+    assert C.bin_slowsha('ab') == [198, 137, 247, 170, 30, 201, 185, 147, 177, 8, 32, 71, 144, 162, 245, 8, 100, 27, 223, 201, 106, 221, 1, 135, 229, 128, 210, 22, 162, 43, 75, 240]
+  end
+
   #
   # encoding and decoding basics
   #

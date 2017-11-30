@@ -290,6 +290,47 @@ defmodule Exbtc.C do
     end
   end
 
+  @spec divide(charlist | String.t, charlist | String.t) :: charlist | String.t
+  def divide(pubkey, privkey) do
+    multiply(pubkey, inv(decode_privkey(privkey), @_n))
+  end
+
+
+  def compress(pubkey) do
+    case get_pubkey_format(pubkey) do
+      "bin" ->
+        encode_pubkey(decode_pubkey(pubkey, "bin"), "bin_compressed")        
+      f when f in ["hex", "decimal"] -> 
+        encode_pubkey(decode_pubkey(pubkey, f), "hex_compressed")
+      _ ->
+        pubkey
+    end
+  end
+
+
+  def decompress(pubkey) do
+    case get_pubkey_format(pubkey) do
+      "bin_compressed" ->
+        encode_pubkey(decode_pubkey(pubkey, "bin_compressed"), "bin")        
+      f when f in ["hex_compressed", "decimal"] -> 
+        encode_pubkey(decode_pubkey(pubkey, f), "hex")
+      _ ->
+        pubkey
+    end    
+  end
+
+
+  @spec pubkey_to_address({non_neg_integer, non_neg_integer} | String.t | charlist, non_neg_integer) :: String.t
+  def pubkey_to_address(key, magicbyte \\ 0) do
+    key = if is_tuple(key) do
+      encode_pubkey(key, "bin")
+    else
+      format = get_pubkey_format(key)
+      encode_pubkey(decode_pubkey(key, format), "bin")
+    end
+    bin_to_b58check(bin_hash160(key), magicbyte)
+  end
+
   @spec privkey_to_pubkey(charlist | String.t) :: String.t | charlist
   def privkey_to_pubkey(key) do
     format = get_privkey_format(key)
@@ -401,17 +442,6 @@ defmodule Exbtc.C do
   # common
   ###############
 
-  @spec pubkey_to_address({non_neg_integer, non_neg_integer} | String.t | charlist, non_neg_integer) :: String.t
-  def pubkey_to_address(key, magicbyte \\ 0) do
-    key = if is_tuple(key) do
-      encode_pubkey(key, "bin")
-    else
-      format = get_pubkey_format(key)
-      encode_pubkey(decode_pubkey(key, format), "bin")
-    end
-    bin_to_b58check(bin_hash160(key), magicbyte)
-  end
-
   @spec bin_hash160(charlist) :: charlist
   def bin_hash160(chars) do
     tmp = :crypto.hash(:sha256, chars)
@@ -421,6 +451,10 @@ defmodule Exbtc.C do
   @spec bin_sha256(charlist) :: charlist
   def bin_sha256(chars) do
     :binary.bin_to_list(:crypto.hash(:sha256, chars))
+  end
+
+  def bin_ripemd160(chars) do
+    :binary.bin_to_list(:crypto.hash(:ripemd160, chars))
   end
 
   @spec b58check_to_bin(charlist) :: charlist
@@ -473,6 +507,11 @@ defmodule Exbtc.C do
     hash = :crypto.hash(:sha256, chars)
     # hash is <<118, 134, ... >> 
     :binary.bin_to_list(:crypto.hash(:sha256, hash))
+  end
+
+  @spec bin_slowsha(charlist) :: charlist
+  def bin_slowsha(chars) do
+    Stream.iterate(chars, &(:binary.bin_to_list(:crypto.hash(:sha256, &1 ++ chars)))) |> Enum.at(100000)
   end
 
   @code_strings %{ 
