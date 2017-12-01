@@ -514,6 +514,37 @@ defmodule Exbtc.C do
     Stream.iterate(chars, &(:binary.bin_to_list(:crypto.hash(:sha256, &1 ++ chars)))) |> Enum.at(100000)
   end
 
+  @spec hash_to_int(String.t) :: integer
+  def hash_to_int(x) do
+    case String.length(x) do
+      n when n == 40 or n == 64 ->
+        decode(x, 16)
+      _ -> 
+        decode(x, 256)
+    end  
+  end
+
+  @spec num_to_var_int(integer) :: charlist
+  def num_to_var_int(x) do
+    cond do
+      x < 253 ->
+        [ x ]
+      x < 65536 -> 
+        [253] ++ Enum.reverse(encode(x, 256, 2))
+      x < 4294967296 ->
+        [254] ++ Enum.reverse(encode(x, 256, 4))
+      true -> 
+        [255] ++ Enum.reverse(encode(x, 256, 8))
+    end
+  end
+
+  @spec electrum_sig_hash(String.t) :: charlist
+  def electrum_sig_hash(message) do
+    [24] ++ 'Bitcoin Signed Message:\n' ++ num_to_var_int(String.length(message)) ++ String.to_charlist(message)
+    |> bin_double_sha256
+  end
+
+
   @code_strings %{ 
       2 => '01',
       10 => '0123456789',
@@ -606,6 +637,10 @@ defmodule Exbtc.C do
       true -> 
         encode(decode(str, from), to, minlen)
     end
+  end
+
+  def from_string_to_bytes(s) do
+    String.to_charlist(s)
   end
 
 end

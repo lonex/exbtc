@@ -225,6 +225,30 @@ defmodule Exbtc.CTest do
     assert C.bin_slowsha('ab') == [198, 137, 247, 170, 30, 201, 185, 147, 177, 8, 32, 71, 144, 162, 245, 8, 100, 27, 223, 201, 106, 221, 1, 135, 229, 128, 210, 22, 162, 43, 75, 240]
   end
 
+  # 
+  # num_to_var_int tests
+  #
+  test "num_to_var_int case 0" do
+    assert C.num_to_var_int(223) == [223]
+  end
+
+  test "num_to_var_int case 1" do
+    assert C.num_to_var_int(340) == [253, 84, 1]
+  end
+
+  test "num_to_var_int case 2" do
+    assert C.num_to_var_int(323524524) == [254, 172, 151, 72, 19]
+  end
+
+  test "num_to_var_int case 3" do
+    assert C.num_to_var_int(78758749507438957) == [255, 109, 73, 88, 87, 170, 206, 23, 1]
+  end
+
+  # Electrum 
+  test "Electrum siganiture" do
+    assert C.electrum_sig_hash("Doh, this works!") == [218, 151, 143, 168, 255, 242, 248, 119, 32, 89, 19, 48, 98, 252, 192, 169, 190, 180, 151, 157, 152, 36, 88, 148, 207, 218, 6, 59, 28, 108, 214, 189] 
+  end
+
   #
   # encoding and decoding basics
   #
