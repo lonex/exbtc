@@ -186,6 +186,10 @@ defmodule Exbtc.C do
     end
   end
 
+  def is_pubkey(key) do
+    get_pubkey_format(key) && true
+  end
+
   @spec get_privkey_format(charlist | non_neg_integer) :: String.t
   def get_privkey_format(key) do
     cond do
@@ -213,6 +217,10 @@ defmodule Exbtc.C do
       true ->
         raise "Invalid private key format"
     end
+  end
+
+  def is_privkey(key) do
+    get_privkey_format(key) && true  
   end
 
   @spec decode_privkey(non_neg_integer | charlist | String.t, String.t) :: non_neg_integer
@@ -348,6 +356,10 @@ defmodule Exbtc.C do
     pubkey_to_address(privkey_to_pubkey(key), magicbyte)
   end
 
+  def is_address(address) do
+    Regex.match?(~r/^[123mn][a-km-zA-HJ-NP-Z0-9]{26,33}$/, address)
+  end
+
   @spec neg_pubkey(charlist | String.t) :: charlist | String.t
   def neg_pubkey(key) do
     format = get_pubkey_format(key)
@@ -453,6 +465,14 @@ defmodule Exbtc.C do
     :binary.bin_to_list(:crypto.hash(:sha256, chars))
   end
 
+  @doc """
+  iex> C.sha256('784734adfids')
+  "ae616f5c8f6d338e4905f6170a90a231d0c89470a94b28e894a83aef90975557"
+  """
+  def sha256(chars) do
+    bytes_to_hex_string(:crypto.hash(:sha256, chars))
+  end
+
   def bin_ripemd160(chars) do
     :binary.bin_to_list(:crypto.hash(:ripemd160, chars))
   end
@@ -538,10 +558,22 @@ defmodule Exbtc.C do
     end
   end
 
+  @spec random_key() :: String.t
+  def random_key() do
+    (:crypto.strong_rand_bytes(32) |> :binary.bin_to_list) ++ 
+      Integer.to_charlist(:rand.uniform(U.power(2,256))) ++ 
+      Integer.to_charlist(System.system_time(:microsecond))
+    |> sha256
+  end
+
   @spec electrum_sig_hash(String.t) :: charlist
   def electrum_sig_hash(message) do
     [24] ++ 'Bitcoin Signed Message:\n' ++ num_to_var_int(String.length(message)) ++ String.to_charlist(message)
     |> bin_double_sha256
+  end
+
+  def random_electrum_seed() do
+    random_key() |> String.slice(0..31)
   end
 
 
@@ -639,8 +671,15 @@ defmodule Exbtc.C do
     end
   end
 
+  @doc """
+  the term `bytes` in Python 3 is used as `charlist` in naming the method and argument here
+  """
   def from_string_to_bytes(s) do
     String.to_charlist(s)
+  end
+
+  def bytes_to_hex_string(chars) do
+    Base.encode16(chars, case: :lower)
   end
 
 end
