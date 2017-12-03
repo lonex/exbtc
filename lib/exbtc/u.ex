@@ -22,7 +22,14 @@ defmodule Exbtc.U do
   """
   def mod(0, _), do: 0
   def mod(x, y) when x > 0, do: rem(x, y)
-  def mod(x, y) when x < 0, do: y + rem(x, y)
+  def mod(x, y) when x < 0 do
+    cond do
+      rem(x, y) == 0 ->
+        0
+      true -> 
+        y + rem(x, y)
+    end
+  end
 
   @doc """
   built-in power loses accuracy due to float number conversion.

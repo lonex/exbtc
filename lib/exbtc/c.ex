@@ -630,14 +630,18 @@ defmodule Exbtc.C do
     { v, r, s }
   end
 
+  @spec ecdsa_sign(String.t, String.t) :: String.t
   def ecdsa_sign(msg, privkey) do
     {v, r, s} = ecdsa_raw_sign(electrum_sig_hash(msg), privkey)
-    encode_sig(v, r, s)
-    # assert ecdsa_verify(msg, sig, 
-        # privtopub(priv)), "Bad Sig!\t %s\nv = %d\n,r = %d\ns = %d" % (sig, v, r, s)
-    # sig
+    sig = encode_sig(v, r, s)
+    if not ecdsa_verify(msg, sig, privkey_to_pubkey(privkey)) do
+      raise "Bad signature! #{sig}\nv = #{v}\n,r = #{r}\ns = #{s}"
+    else
+      sig
+    end
   end
 
+  @spec ecdsa_raw_verify(charlist, {non_neg_integer, non_neg_integer, non_neg_integer}, String.t | pair) :: boolean
   def ecdsa_raw_verify(msg_hash, {v, r, s}, pubkey) do
     if not (v >= 27 and v <= 34) do
       false
@@ -654,6 +658,10 @@ defmodule Exbtc.C do
     end
   end
 
+  @doc """
+    recover the public key  
+  """
+  @spec ecdsa_raw_recover(charlist, {non_neg_integer, non_neg_integer, non_neg_integer}) :: pair
   def ecdsa_raw_recover(msg_hash, {v, r, s}) do
     if not (v >= 27 and v <=34) do
       raise "#{v} must be in range 27 to 34"
@@ -667,7 +675,7 @@ defmodule Exbtc.C do
         @_p - beta
       end
       if U.mod(x_cubed_axb - y*y, @_p) != 0 || U.mod(r, @_n) == 0 || U.mod(s, @_n) == 0 do
-        false
+        raise "Invalid message hash #{msg_hash}"
       else
         z = hash_to_int(msg_hash)
         gz = jacobian_multiply({ @_g_x, @_g_y, 1}, U.mod(@_n - z, @_n))
@@ -679,6 +687,7 @@ defmodule Exbtc.C do
     end
   end
 
+  @spec ecdsa_recover(String.t, String.t) :: String.t
   def ecdsa_recover(msg, signature) do
     { v, r, s } = decode_sig(signature)
     q = ecdsa_raw_recover(electrum_sig_hash(msg), { v, r, s })
@@ -689,6 +698,7 @@ defmodule Exbtc.C do
     end
   end
 
+  @spec get_version_byte(String.t) :: integer
   def get_version_byte(address) do
     leadingzbytes = case Regex.named_captures(~r/^(?<ones>1*)/, address) do
       %{ "ones" => d } -> 
@@ -698,14 +708,14 @@ defmodule Exbtc.C do
     end
     data = U.replicate(leadingzbytes, 0) ++ changebase(address, 58, 256)
     size = length(data)
-    if not Enum.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1) do
+    if not (Enum.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1)) do
       raise "Assertion failed for get_version_byte #{address}"
     else
       Enum.at(data, 0)
     end      
   end
 
-
+  @spec ecdsa_verify_address(String.t, String.t, String.t) :: boolean
   def ecdsa_verify_address(msg, signature, address) do
     if not is_address(address) do
       false
@@ -716,6 +726,7 @@ defmodule Exbtc.C do
     end
   end
 
+  @spec ecdsa_verify(String.t, String.t, String.t) :: boolean
   def ecdsa_verify(msg, sig, pub) do
     if is_address(pub) do
       ecdsa_verify_address(msg, sig, pub)
