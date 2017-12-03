@@ -576,6 +576,36 @@ defmodule Exbtc.C do
     random_key() |> String.slice(0..31)
   end
 
+  #
+  # EDCSA
+  #
+
+  def encode_sig(v, r, s) do
+    { vb, rb, sb } = { [v], encode(r, 256), encode(s, 256) }
+    vb ++ U.replicate(32 - length(rb), 0) ++ rb ++ U.replicate(32 - length(sb), 0) ++ sb
+    |> List.to_string
+    |> Base.encode64
+  end
+
+  def decode_sig(signature) do
+    { :ok, bitstr } = Base.decode64(signature)
+    integers = :binary.bin_to_list(bitstr)
+    { Enum.at(integers, 0), decode(Enum.slice(integers, 1..32), 256), decode(Enum.slice(integers, 33..length(integers)-1), 256) }
+  end
+
+  def deterministic_generate_k(msg_hash, privkey) do
+    v = U.replicate(32, 1)
+    k = U.replicate(32, 0)
+    priv = encode_privkey(privkey, "bin")
+    msg_hash = encode(hash_to_int(msg_hash), 256, 32)
+
+    k = :binary.bin_to_list(:crypto.hmac(:sha256, k, v ++ [ 0 ] ++ priv ++ msg_hash))
+    v = :binary.bin_to_list(:crypto.hmac(:sha256, k, v))
+    k = :binary.bin_to_list(:crypto.hmac(:sha256, k, v ++ [ 1 ] ++ priv ++ msg_hash))
+    v = :binary.bin_to_list(:crypto.hmac(:sha256, k, v))
+    decode(:binary.bin_to_list(:crypto.hmac(:sha256, k, v)), 256)
+  end
+
 
   @code_strings %{ 
       2 => '01',

@@ -249,6 +249,15 @@ defmodule Exbtc.CTest do
     assert C.electrum_sig_hash("Doh, this works!") == [218, 151, 143, 168, 255, 242, 248, 119, 32, 89, 19, 48, 98, 252, 192, 169, 190, 180, 151, 157, 152, 36, 88, 148, 207, 218, 6, 59, 28, 108, 214, 189] 
   end
 
+  # 
+  # ECDSA
+  #
+
+  test "deterministic_generate_k correctness" do
+    assert C.deterministic_generate_k("ae616f5c8f6d338e4905f6170a90a231d0c89470a94b28e894a83aef90975557", @private_key_wif)
+      == 56267843410105270424278661687405314302163735243946113335107965935995479810686
+  end
+
   #
   # encoding and decoding basics
   #
