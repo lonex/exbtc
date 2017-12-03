@@ -253,9 +253,19 @@ defmodule Exbtc.CTest do
   # ECDSA
   #
 
+  @some_hash_msg "ae616f5c8f6d338e4905f6170a90a231d0c89470a94b28e894a83aef90975557"
+
   test "deterministic_generate_k correctness" do
-    assert C.deterministic_generate_k("ae616f5c8f6d338e4905f6170a90a231d0c89470a94b28e894a83aef90975557", @private_key_wif)
+    assert C.deterministic_generate_k(@some_hash_msg, @private_key_wif)
       == 56267843410105270424278661687405314302163735243946113335107965935995479810686
+  end
+
+  test "ecdsa_raw_sign" do
+    assert C.ecdsa_raw_sign(@some_hash_msg, @private_key_wif) == {
+      27,
+      41154207482858914175911754278062463391398648683511312987539066225178600511219,
+      53491489067854410808101337145682760178417845602912246581854164573336506079083
+    }  
   end
 
   #

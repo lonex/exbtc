@@ -1,4 +1,5 @@
 defmodule Exbtc.C do
+  use Bitwise
   alias Exbtc.U
 
   # p = 2 ^ 256 - 2 ^ 32 - 977
@@ -580,6 +581,7 @@ defmodule Exbtc.C do
   # EDCSA
   #
 
+  @spec encode_sig(integer, integer, integer) :: String.t
   def encode_sig(v, r, s) do
     { vb, rb, sb } = { [v], encode(r, 256), encode(s, 256) }
     vb ++ U.replicate(32 - length(rb), 0) ++ rb ++ U.replicate(32 - length(sb), 0) ++ sb
@@ -587,12 +589,14 @@ defmodule Exbtc.C do
     |> Base.encode64
   end
 
+  @spec decode_sig(String.t) :: { integer, integer, integer }
   def decode_sig(signature) do
     { :ok, bitstr } = Base.decode64(signature)
     integers = :binary.bin_to_list(bitstr)
     { Enum.at(integers, 0), decode(Enum.slice(integers, 1..32), 256), decode(Enum.slice(integers, 33..length(integers)-1), 256) }
   end
 
+  @spec deterministic_generate_k(String.t, String.t) :: non_neg_integer
   def deterministic_generate_k(msg_hash, privkey) do
     v = U.replicate(32, 1)
     k = U.replicate(32, 0)
@@ -604,6 +608,18 @@ defmodule Exbtc.C do
     k = :binary.bin_to_list(:crypto.hmac(:sha256, k, v ++ [ 1 ] ++ priv ++ msg_hash))
     v = :binary.bin_to_list(:crypto.hmac(:sha256, k, v))
     decode(:binary.bin_to_list(:crypto.hmac(:sha256, k, v)), 256)
+  end
+
+
+  def ecdsa_raw_sign(msg_hash, privkey) do
+    z = hash_to_int(msg_hash)
+    k = deterministic_generate_k(msg_hash, privkey)
+    { r, y } = fast_multiply(@_g, k)
+    s = U.mod(inv(k, @_n) * (z + r * decode_privkey(privkey)), @_n)
+    v = 27 + (U.mod(y, 2) ^^^ (if s * 2 < N, do: 0, else: 1))
+    s = if s * 2 >= @_n, do: @_n - s, else: s
+    v = if get_privkey_format(privkey) in [ "hex_compressed", "bin_compressed" ], do: v + 4, else: v
+    { v, r, s }
   end
 
 
