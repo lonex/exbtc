@@ -535,9 +535,14 @@ defmodule Exbtc.C do
     Stream.iterate(chars, &(:binary.bin_to_list(:crypto.hash(:sha256, &1 ++ chars)))) |> Enum.at(100000)
   end
 
-  @spec hash_to_int(String.t) :: integer
+  @spec hash_to_int(String.t | charlist) :: integer
   def hash_to_int(x) do
-    case String.length(x) do
+    size = if is_list(x) do 
+      length(x)
+    else
+      String.length(x)
+    end
+    case size do
       n when n == 40 or n == 64 ->
         decode(x, 16)
       _ -> 
@@ -581,11 +586,14 @@ defmodule Exbtc.C do
   # EDCSA
   #
 
+  @doc """
+    use :binary.list_to_bin, not List.to_string which expects utf-8 codepoints
+  """
   @spec encode_sig(integer, integer, integer) :: String.t
   def encode_sig(v, r, s) do
     { vb, rb, sb } = { [v], encode(r, 256), encode(s, 256) }
     vb ++ U.replicate(32 - length(rb), 0) ++ rb ++ U.replicate(32 - length(sb), 0) ++ sb
-    |> List.to_string
+    |> :binary.list_to_bin 
     |> Base.encode64
   end
 
@@ -610,16 +618,110 @@ defmodule Exbtc.C do
     decode(:binary.bin_to_list(:crypto.hmac(:sha256, k, v)), 256)
   end
 
-
+  @spec ecdsa_raw_sign(String.t | charlist, String.t | non_neg_integer) :: { non_neg_integer, non_neg_integer, non_neg_integer }
   def ecdsa_raw_sign(msg_hash, privkey) do
     z = hash_to_int(msg_hash)
     k = deterministic_generate_k(msg_hash, privkey)
     { r, y } = fast_multiply(@_g, k)
     s = U.mod(inv(k, @_n) * (z + r * decode_privkey(privkey)), @_n)
-    v = 27 + (U.mod(y, 2) ^^^ (if s * 2 < N, do: 0, else: 1))
+    v = 27 + (U.mod(y, 2) ^^^ (if s * 2 < @_n, do: 0, else: 1))
     s = if s * 2 >= @_n, do: @_n - s, else: s
     v = if get_privkey_format(privkey) in [ "hex_compressed", "bin_compressed" ], do: v + 4, else: v
     { v, r, s }
+  end
+
+  def ecdsa_sign(msg, privkey) do
+    {v, r, s} = ecdsa_raw_sign(electrum_sig_hash(msg), privkey)
+    encode_sig(v, r, s)
+    # assert ecdsa_verify(msg, sig, 
+        # privtopub(priv)), "Bad Sig!\t %s\nv = %d\n,r = %d\ns = %d" % (sig, v, r, s)
+    # sig
+  end
+
+  def ecdsa_raw_verify(msg_hash, {v, r, s}, pubkey) do
+    if not (v >= 27 and v <= 34) do
+      false
+    else
+      w = inv(s, @_n)
+      z = hash_to_int(msg_hash)
+      { u1, u2 } = { U.mod(z * w, @_n), U.mod(r * w, @_n) }
+      { x, _ } = fast_add(fast_multiply(@_g, u1), fast_multiply(decode_pubkey(pubkey), u2))
+      if r == x && U.mod(r, @_n) != 0 && U.mod(s, @_n) != 0 do
+        true
+      else
+        false
+      end
+    end
+  end
+
+  def ecdsa_raw_recover(msg_hash, {v, r, s}) do
+    if not (v >= 27 and v <=34) do
+      raise "#{v} must be in range 27 to 34"
+    else
+      x = r
+      x_cubed_axb = U.mod(x * x * x + @_a * x + @_b, @_p)
+      beta = U.power(x_cubed_axb, div(@_p + 1, 4), @_p)
+      y = if U.mod(v, 2) ^^^ U.mod(beta, 2) != 0 do
+        beta
+      else
+        @_p - beta
+      end
+      if U.mod(x_cubed_axb - y*y, @_p) != 0 || U.mod(r, @_n) == 0 || U.mod(s, @_n) == 0 do
+        false
+      else
+        z = hash_to_int(msg_hash)
+        gz = jacobian_multiply({ @_g_x, @_g_y, 1}, U.mod(@_n - z, @_n))
+        xy = jacobian_multiply({x, y, 1}, s)
+        qr = jacobian_add(gz, xy)
+        q = jacobian_multiply(qr, inv(r, @_n))
+        from_jacobian(q)
+      end
+    end
+  end
+
+  def ecdsa_recover(msg, signature) do
+    { v, r, s } = decode_sig(signature)
+    q = ecdsa_raw_recover(electrum_sig_hash(msg), { v, r, s })
+    if v >= 31 do
+      encode_pubkey(q, "hex_compressed")
+    else
+      encode_pubkey(q, "hex")
+    end
+  end
+
+  def get_version_byte(address) do
+    leadingzbytes = case Regex.named_captures(~r/^(?<ones>1*)/, address) do
+      %{ "ones" => d } -> 
+        String.length(d)
+      _ -> 
+        0
+    end
+    data = U.replicate(leadingzbytes, 0) ++ changebase(address, 58, 256)
+    size = length(data)
+    if not Enum.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1) do
+      raise "Assertion failed for get_version_byte #{address}"
+    else
+      Enum.at(data, 0)
+    end      
+  end
+
+
+  def ecdsa_verify_address(msg, signature, address) do
+    if not is_address(address) do
+      false
+    else
+      q = ecdsa_recover(msg, signature)
+      magic = get_version_byte(address)
+      address == pubkey_to_address(q, magic) || (address == pubkey_to_address(compress(q), magic))
+    end
+  end
+
+  def ecdsa_verify(msg, sig, pub) do
+    if is_address(pub) do
+      ecdsa_verify_address(msg, sig, pub)
+    else
+      ecdsa_raw_verify(electrum_sig_hash(msg), decode_sig(sig), pub)
+    end
   end
 
 

@@ -268,6 +268,11 @@ defmodule Exbtc.CTest do
     }  
   end
 
+  test "ecdsa_sign" do
+    assert C.ecdsa_sign("it is cool", "14ba671a90d51bbe75fe23f4e91bd63ced567adf68e9802fb16d7cbfca1f5f05") \
+      == "HHHrsBTWi5PAYyEr4oCnEMGf1RhK9BNNIjXJscDuMK/RVWy+3r9j61Mt28szEWLXUTKsQQTqAwXSUn76USmYrWI="    
+  end
+
   #
   # encoding and decoding basics
   #
