@@ -33,8 +33,8 @@ defmodule Exbtc.Mixfile do
     [
       maintainers: [ "lonex" ],
       licenses: [ "MIT" ],
-      links: %{github: "https://github.com/lonex/exbt"},
-      files: ~w(lib mix.exs, README.md)
+      links: %{github: "https://github.com/lonex/exbtc"},
+      files: ~w(lib mix.exs README.md)
     ]
   end
 end
