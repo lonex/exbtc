@@ -4,7 +4,7 @@ defmodule Exbtc.Mixfile do
   def project do
     [
       app: :exbtc,
-      description: "Bitcoin Exlixir port",
+      description: "Exlixir ECC utils, port from python Bitcoin tool",
       package: package(),
       version: "0.1.0",
       elixir: "~> 1.5",
@@ -31,7 +31,7 @@ defmodule Exbtc.Mixfile do
 
   defp package do
     [
-      contributors: [ "lonex" ],
+      maintainers: [ "lonex" ],
       licenses: [ "MIT" ],
       links: %{github: "https://github.com/lonex/exbt"},
       files: ~w(lib mix.exs, README.md)
