@@ -1,4 +1,4 @@
-defmodule Exbtc.C do
+defmodule Exbtc.Core do
   use Bitwise
   alias Exbtc.U
 

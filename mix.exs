@@ -5,7 +5,7 @@ defmodule Exbtc.Mixfile do
     [
       app: :exbtc,
       description: "Bitcoin Exlixir port",
-      # package: package,
+      package: package(),
       version: "0.1.0",
       elixir: "~> 1.5",
       # build_embedded: Mix.env == :prod,
@@ -29,12 +29,12 @@ defmodule Exbtc.Mixfile do
     ]
   end
 
-  # defp package do
-  #   [
-  #     contributors: [ "stonelonely" ],
-  #     licenses: [ "MIT" ],
-  #     links: %{github: "https://github.com/lonex/exbt"},
-  #     files: ~w(lib mix.exs, README.md)
-  #   ]
-  # end
+  defp package do
+    [
+      contributors: [ "lonex" ],
+      licenses: [ "MIT" ],
+      links: %{github: "https://github.com/lonex/exbt"},
+      files: ~w(lib mix.exs, README.md)
+    ]
+  end
 end

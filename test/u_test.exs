@@ -1,6 +1,6 @@
 defmodule Exbtc.UTest do
   use ExUnit.Case
-  alias Exbtc.C
+  alias Exbtc.Core, as: C
   alias Exbtc.U
 
   test "power function work for big ints" do

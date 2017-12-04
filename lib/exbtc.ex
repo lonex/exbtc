@@ -1,8 +1,6 @@
 defmodule Exbtc do
 
-  @moduledoc """
-  Documentation for Exbtc.
-  """
+  @moduledoc File.read!(Path.expand("../README.md", __DIR__))
 
   @doc """
   Hello world.
