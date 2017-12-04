@@ -282,6 +282,15 @@ defmodule Exbtc.C do
     encode_privkey(U.mod(decode_privkey(p1, format1) + decode_privkey(p2, format2), @_n), format1)
   end
 
+  def add(p1, p2) do
+    cond do
+      is_privkey(p1) ->
+        add_privkeys(p1, p2)
+      true -> 
+        add_pubkeys(p1, p2)
+    end  
+  end
+
   def multiply_privkeys(p1, p2) do
     { format1, format2 }= { get_privkey_format(p1), get_privkey_format(p2) }
     encode_privkey(U.mod(decode_privkey(p1, format1) * decode_privkey(p2, format2), @_n), format1)    
@@ -387,6 +396,15 @@ defmodule Exbtc.C do
     { format1, format2 } = { get_privkey_format(p1), get_privkey_format(p2) }
     k = decode_privkey(p2, format2)
     encode_privkey(U.mod(decode_privkey(p1, format1) - k, @_n), format1)
+  end
+
+  def substract(p1, p2) do
+    cond do
+      is_privkey(p1) ->
+        subtract_privkey(p1, p2)
+      true ->
+        subtract_pubkeys(p1, p2)
+    end
   end
 
   @doc """

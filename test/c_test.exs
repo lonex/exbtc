@@ -273,6 +273,16 @@ defmodule Exbtc.CTest do
       == "HHHrsBTWi5PAYyEr4oCnEMGf1RhK9BNNIjXJscDuMK/RVWy+3r9j61Mt28szEWLXUTKsQQTqAwXSUn76USmYrWI="    
   end
 
+  test "ecdsa_verify_address " do
+    assert C.ecdsa_verify_address("it is cool", "HHHrsBTWi5PAYyEr4oCnEMGf1RhK9BNNIjXJscDuMK/RVWy+3r9j61Mt28szEWLXUTKsQQTqAwXSUn76USmYrWI=", 
+      "16FCJfSfW9hYFxNsmmzaaKb2xf9SrmgYRQ") == true
+  end
+
+  test "ecdsa_verify for public key ecdsa_raw_verify" do
+    assert C.ecdsa_verify("it is cool", "HHHrsBTWi5PAYyEr4oCnEMGf1RhK9BNNIjXJscDuMK/RVWy+3r9j61Mt28szEWLXUTKsQQTqAwXSUn76USmYrWI=", 
+      "04f924ed667ddfe2c9742ec174f814c50a17097c5b445ba3f493fd502a1fb4ad55ce6a9039c122fbc4523e44da6af6d263055d9a1d432d25b0cee8baaa210539bf") == true
+  end
+
   #
   # encoding and decoding basics
   #
