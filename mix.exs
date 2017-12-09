@@ -4,7 +4,7 @@ defmodule Exbtc.Mixfile do
   def project do
     [
       app: :exbtc,
-      description: "Exlixir ECC (Elliptic curve cryptography) utils, port from Python Bitcoin tool (https://github.com/vbuterin/pybitcointools)",
+      description: "Elixir ECC (Elliptic curve cryptography) utils, port from Python Bitcoin tool (https://github.com/vbuterin/pybitcointools)",
       package: package(),
       version: "0.1.1",
       elixir: "~> 1.5",

@@ -102,12 +102,10 @@ The package can be installed by adding `exbtc` to your list of dependencies in `
 ```elixir
 def deps do
   [
-    {:exbtc, "~> 0.1.0"}
+    {:exbtc, "~> 0.1.1"}
   ]
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/exbtc](https://hexdocs.pm/exbtc).
+The docs can be found at [https://hexdocs.pm/exbtc](https://hexdocs.pm/exbtc).
 
