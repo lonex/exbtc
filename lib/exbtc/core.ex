@@ -509,7 +509,7 @@ defmodule Exbtc.Core do
     if Enum.slice(bin_double_sha256(Enum.slice(data, 0..size-5)), 0..3) == Enum.slice(data, size-4..size-1) do
       Enum.slice(data, 1..size-5)
     else
-      raise "Assertion failed for fin_double_sha256 #{key}"
+      raise "Assertion failed for bin_double_sha256 #{key}"
     end      
   end
 
@@ -551,6 +551,11 @@ defmodule Exbtc.Core do
   @spec bin_slowsha(charlist) :: charlist
   def bin_slowsha(chars) do
     Stream.iterate(chars, &(:binary.bin_to_list(:crypto.hash(:sha256, &1 ++ chars)))) |> Enum.at(100000)
+  end
+
+  @spec slowsha(charlist) :: String.t
+  def slowsha(chars) do
+    bytes_to_hex_string(:binary.list_to_bin(bin_slowsha(chars)))
   end
 
   @spec hash_to_int(String.t | charlist) :: integer
@@ -855,8 +860,9 @@ defmodule Exbtc.Core do
     String.to_charlist(s)
   end
 
-  def bytes_to_hex_string(chars) do
-    Base.encode16(chars, case: :lower)
+  @spec bytes_to_hex_string(binary) :: String.t
+  def bytes_to_hex_string(bin) do
+    Base.encode16(bin, case: :lower)
   end
 
 end
