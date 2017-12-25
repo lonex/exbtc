@@ -24,4 +24,36 @@ defmodule Exbtc.BIP32Test do
   test "electrum_address " do
     assert BIP32.electrum_address(@seed, 3) == "1HuVyb4YBuX6YezM2vVMwHgyYHC88je3t6"
   end
+
+  test "bip32_master_key" do
+    seed = "21456t243rhgtucyadh3wgyrcubw3grydfbng"
+    assert BIP32.bip32_master_key(seed) == "xprv9s21ZrQH143K2napkeoHT48gWmoJa89KCQj4nqLfdGybyWHP9Z8jvCGzuEDv4ihCyoed7RFPNbc9NxoSF7cAvH9AaNSvepUaeqbSpJZ4rbT"
+  end
+
+  test "bip32_extract_key" do
+    key = "xprv9s21ZrQH143K2napkeoHT48gWmoJa89KCQj4nqLfdGybyWHP9Z8jvCGzuEDv4ihCyoed7RFPNbc9NxoSF7cAvH9AaNSvepUaeqbSpJZ4rbT"
+    assert BIP32.bip32_extract_key(key) == "7095a63c925622891fbb0152710d7c5abb5516d973222391351e53241989aa6001"
+  end
+
+  @seed "000102030405060708090a0b0c0d0e0f"
+
+  test "bip32_ckd child key derivation case 0" do
+    key = master_key(@seed)
+    assert BIP32.bip32_ckd(key, 0) == "xprv9vP5sMbLg72gDgrnsmfqesSgHPptciMYYyz3d3sUFV7hJeuioLevaqfr5DZzT4rpfCnNCzvLkeRTHuNrHJWFy83YA4PZM2ysPM2mAdTKB5o"
+  end
+
+  test "bip32_ckd child key derivation case 1" do
+    key = master_key(@seed)
+    assert BIP32.bip32_ckd(key, 10) == "xprv9vP5sMbLg72gdkusoZZL5mnxxMTb9Gjj36myc3zhzkKZjcSXJ6gxApYTVkSkLMzb6Up4pyoV2GZCQexMNEjT6soiBGG5D7XrER2zwM7gHfe"
+  end
+
+  test "bip32_privtopub" do
+    key = master_key(@seed)
+    assert BIP32.bip32_privtopub(key) == "xpub661MyMwAqRbcGSMdR8QTQqz22hBvK8DS3MmanH6ZeE5RJ84YndJ59aUXvSg3R8z7o4GwP7CgAYRhZmDdTGXejEX3QVy4vC2k1fFjbUgsCud"
+  end
+
+  def master_key(seed) do
+    BIP32.bip32_master_key(seed)
+  end
+
 end
