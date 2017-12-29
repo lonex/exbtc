@@ -24,7 +24,9 @@ defmodule Exbtc.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, ">= 0.0.0", only: :dev}
+      {:ex_doc, ">= 0.0.0", only: :dev},
+      {:httpoison, ">= 0.9.0"},
+      {:poison, ">= 2.2.0"}
     ]
   end
 
