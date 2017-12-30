@@ -75,7 +75,7 @@ defmodule ExbtcEg.Mixfile do
   # ...
   defp deps do
     [
-      { :exbtc, "~> 0.1.0" }
+      { :exbtc, "~> 0.1.2" }
     ]
   end
 end
@@ -102,7 +102,7 @@ The package can be installed by adding `exbtc` to your list of dependencies in `
 ```elixir
 def deps do
   [
-    {:exbtc, "~> 0.1.1"}
+    {:exbtc, "~> 0.1.2"}
   ]
 end
 ```
