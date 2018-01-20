@@ -19,7 +19,8 @@ defmodule Exbtc.CoreTest do
     assert C.jacobian_double(C.to_jacobian(a)) == {
       293056723988571195398282018817,
       115792089237316195423570985008687749207851136822633023217124110674511503608112,
-      1964903306}
+      1964903306
+    }
   end
 
   #
@@ -34,8 +35,7 @@ defmodule Exbtc.CoreTest do
   @private_key_2_wif  "5J3mBbAH58CpQ3Y5RNJpUKPE62SQ5tfcvU2JpbnkeyhfsYB1Jcn"
 
   test "decode_privkey from hex" do
-    assert C.decode_privkey(@private_key_hex, "hex") == \
-      @private_key
+    assert C.decode_privkey(@private_key_hex, "hex") == @private_key
   end
 
   test "encode_privkey to wif" do
@@ -67,7 +67,8 @@ defmodule Exbtc.CoreTest do
   end
 
   test "create public key from private key" do
-    assert C.privkey_to_pubkey(@private_key_wif) == "045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d44bd7356d6a53c495737dd96295e2a9374bf5f02ebfc176"
+    assert C.privkey_to_pubkey(@private_key_wif) == 
+        "045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d44bd7356d6a53c495737dd96295e2a9374bf5f02ebfc176"
   end
 
   # 
