@@ -15,13 +15,13 @@ defmodule Exbtc.U do
   end
 
   @doc """
-    `rem` is not exactly as the modulo when negative numbers is involved,
+    `rem` is not exactly the modulo when negative numbers is involved,
     so define the `mod` here
 
-    iex> C.mod(-9, 19)
-    10
-    iex> rem(-9, 19)
-    -9
+      iex> C.mod(-9, 19)
+      10
+      iex> rem(-9, 19)
+      -9
   """
   def mod(0, _), do: 0
   def mod(x, y) when x > 0, do: rem(x, y)
@@ -51,9 +51,9 @@ defmodule Exbtc.U do
   end
 
   @doc """
-  Python's pow(n, p, m) = (n ^ p) % m 
+  equivalent to Python's `pow(n, p, m) = (n ^ p) % m`
   """
-  @spec power(non_neg_integer, non_neg_integer, non_neg_integer) :: non_neg_integer
+  @spec power(n :: non_neg_integer, p :: non_neg_integer, modulo :: non_neg_integer) :: non_neg_integer
   def power(n, p, modulo) when p >= 0 and n > 0 do
     _power(n, p, modulo, 1)
   end

@@ -2,7 +2,7 @@ defmodule Exbtc.BIP32 do
   alias Exbtc.Core, as: C
   alias Exbtc.U
 
-  @spec electrum_stretch(String.t()) :: charlist
+  @spec electrum_stretch(String.t()) :: String.t()
   def electrum_stretch(seed) do
     C.slowsha(String.to_charlist(seed))
   end
@@ -21,8 +21,8 @@ defmodule Exbtc.BIP32 do
   end
 
   @doc """
-  for_change 0 ordinary address
-             1 for change
+    for_change 0 ordinary address
+               1 for change
   """
   @spec electrum_privkey(String.t(), Integer, 0 | 1) :: String.t()
   def electrum_privkey(seed, n, for_change \\ 0) do
@@ -46,7 +46,7 @@ defmodule Exbtc.BIP32 do
   end
 
   @doc """
-  master_key: can be seed, stetched seed or master public key
+    master_key: can be seed, stetched seed or master public key
   """
   @spec electrum_pubkey(String.t(), Integer, 0 | 1) :: String.t()
   def electrum_pubkey(master_key, n, for_change \\ 0) do

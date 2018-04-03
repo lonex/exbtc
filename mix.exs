@@ -7,7 +7,7 @@ defmodule Exbtc.Mixfile do
       description:
         "Elixir ECC (Elliptic curve cryptography) utils, port from Python Bitcoin tool (https://github.com/vbuterin/pybitcointools)",
       package: package(),
-      version: "0.1.3",
+      version: "0.1.4",
       elixir: "~> 1.5",
       # build_embedded: Mix.env == :prod,
       start_permanent: Mix.env() == :prod,

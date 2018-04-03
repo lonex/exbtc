@@ -2,41 +2,107 @@ defmodule Exbtc.Core do
   use Bitwise
   alias Exbtc.U
 
-  # p = 2 ^ 256 - 2 ^ 32 - 977
-  @_p 115792089237316195423570985008687907853269984665640564039457584007908834671663 
+  @typedoc """
+    binary encoded key: "bin", "bin_compressed"
+  """
+  @type binary_encoded_key() :: list(byte)
+  @typedoc """
+    hex encoded key: "hex", "hex_compressed"
+  """
+  @type hex_encoded_key() :: String.t()
+  @typedoc """
+    "wif", "wif_compressed"
+  """
+  @type wif_encoded_key() :: String.t()
+  @typedoc """
+    native decoded key in big integer, or "decimal"
+  """
+  @type native_key() :: non_neg_integer
+  @type native_private_key() :: native_key()
+  @type native_public_key() :: native_key()
+  @type native_public_key_pair() :: {native_key(), native_key()}
 
-  def _p, do: @_p
+  @type binary_encoded_private_key() :: binary_encoded_key()
+  @type hex_encoded_private_key() :: hex_encoded_key()
+  @type wif_encoded_private_key() :: wif_encoded_key()
+  @type binary_encoded_public_key() :: binary_encoded_key()
+  @type hex_encoded_public_key() :: hex_encoded_key()
+
+  @type encoded_private_key() :: binary_encoded_private_key() | hex_encoded_private_key() | wif_encoded_private_key()
+  @type encoded_public_key() :: binary_encoded_public_key() | hex_encoded_public_key() 
+  @type encoded_key() :: binary_encoded_key() | hex_encoded_key() | wif_encoded_key()
+
+  @typedoc """
+    b58checked public address string
+  """
+  @type address :: String.t()
+
+  @typedoc """
+    "bin" | "bin_compressed" | "bin_electrum" | "decimal" | "hex" | "hex_compressed" | "hex_electrum"
+  """
+  @type public_key_format() :: String.t()
+  @typedoc """
+    "bin" | "bin_compressed" | "bin_electrum" | "decimal" | "hex" | "hex_compressed" | "hex_electrum" | "wif" | "wif_compressed"
+  """
+  @type private_key_format() :: String.t()
+
+  # p = 2 ^ 256 - 2 ^ 32 - 977
+  @_p 115792089237316195423570985008687907853269984665640564039457584007908834671663
+
+  @doc """
+    secp256k1 prime
+  """
   def p,  do: @_p
+  def _p, do: @_p
 
   @_n 115792089237316195423570985008687907852837564279074904382605163141518161494337
+  @doc """
+    secp256k1 number of points
+  """
   def n, do: @_n
   def _n, do: @_n
 
   @_a 0
+  @doc """
+    secp256k1 y^2 = x^3 + ax + b, a is 0
+  """
   def a, do: @_a
   def _a, do: a()
 
   @_b 7
+  @doc """
+    secp256k1 y^2 = x^3 + ax + b, b is 7
+  """
   def b, do: @_b
   def _b, do: b()
 
   @_g_x 55066263022277343669578718895168534326250603453777594175500187360389116729240
   @_g_y 32670510020758816978083085130507043184471273380659243275938904335757337482424
   @_g {@_g_x, @_g_y}
+  
+  @doc """
+    secp256k1 base point (G) = (g_x, g_y)
+  """
   def g_x, do: @_g_x
+  @doc """
+    secp256k1 base point (G) = (g_x, g_y)
+  """
   def g_y, do: @_g_y
+  @doc """
+    secp256k1 base point (G) = (g_x, g_y)
+  """
   def g, do: {g_x(), g_y()}
   def _g, do: g()
 
-  def _inv(n, lm, _, low, _) when low <= 1, do: U.mod(lm, n)
-  def _inv(n, lm, hm, low, high) do
+  defp _inv(n, lm, _, low, _) when low <= 1, do: U.mod(lm, n)
+  defp _inv(n, lm, hm, low, high) do
     r = div(high, low)
     {nm, new} = {hm - lm * r, high - low * r}
     _inv(n, nm, lm, new, low)
   end
 
   @doc """
-    extended Euclidean Algo
+    extended Euclidean algo
   """
   def inv(0, _), do: 0
   def inv(a, n) do
@@ -45,6 +111,7 @@ defmodule Exbtc.Core do
     _inv(n, lm, hm, low, high)
   end
 
+  @spec is_inf(pair) :: boolean
   def is_inf(p) do
     elem(p, 0) == 0 and elem(p, 1) == 0
   end
@@ -54,16 +121,16 @@ defmodule Exbtc.Core do
   #
 
   @typedoc """
-  jacobian number as a tuple
+    jacobian number as a tuple
   """
   @type jacobian_number :: {non_neg_integer, non_neg_integer, non_neg_integer}
 
   @typedoc """
-  point on the elliptic curve ?
+    point on the elliptic curve as a tuple
   """
   @type pair :: {non_neg_integer, non_neg_integer}
 
-  @spec to_jacobian(pair) :: {non_neg_integer, non_neg_integer, 1} 
+  @spec to_jacobian(pair) :: {non_neg_integer, non_neg_integer, 1}
   def to_jacobian(p) do
     {elem(p, 0), elem(p, 1), 1}
   end
@@ -71,7 +138,7 @@ defmodule Exbtc.Core do
   @spec jacobian_double(jacobian_number) :: jacobian_number
   def jacobian_double(p) do
     case elem(p, 1) do
-      0 -> 
+      0 ->
         {0, 0, 0}
 
       _ ->
@@ -99,7 +166,7 @@ defmodule Exbtc.Core do
         u2 = U.mod(elem(q, 0) * elem(p, 2) * elem(p, 2), _p())
         s1 = U.mod(elem(p, 1) * U.power(elem(q, 2), 3), _p())
         s2 = U.mod(elem(q, 1) * U.power(elem(p, 2), 3), _p())
-        
+
         if u1 == u2 do
           if s1 != s2 do
             {0, 0, 1}
@@ -156,7 +223,7 @@ defmodule Exbtc.Core do
     from_jacobian(jacobian_add(to_jacobian(a), to_jacobian(b)))
   end
 
-  @spec get_pubkey_format(charlist | String.t()) :: String.t()
+  @spec get_pubkey_format(encoded_public_key() | native_public_key_pair()) :: public_key_format()
   def get_pubkey_format(key) do
     cond do
       is_tuple(key) ->
@@ -175,7 +242,7 @@ defmodule Exbtc.Core do
           size == 64 ->
             "bin_electrum"
 
-          true -> 
+          true ->
             raise "Pubkey not in regonized format"
         end
 
@@ -183,7 +250,7 @@ defmodule Exbtc.Core do
         # String key
         size = byte_size(key)
         cond do
-          size == 130 and String.slice(key, 0, 2) == "04" -> 
+          size == 130 and String.slice(key, 0, 2) == "04" ->
             "hex"
 
           size == 66 and String.slice(key, 0, 2) in ["02", "03"] ->
@@ -192,7 +259,7 @@ defmodule Exbtc.Core do
           size == 128 ->
             "hex_electrum"
 
-          true -> 
+          true ->
             raise "Pubkey not in regonized format"
         end
 
@@ -201,35 +268,36 @@ defmodule Exbtc.Core do
     end
   end
 
+  @spec is_pubkey(encoded_public_key | native_public_key_pair) :: boolean
   def is_pubkey(key) do
     get_pubkey_format(key) && true
   end
 
-  @spec get_privkey_format(charlist | non_neg_integer) :: String.t()
+  @spec get_privkey_format(encoded_private_key | native_private_key) :: private_key_format
   def get_privkey_format(key) do
     cond do
       is_number(key) ->
         "decimal"
 
       is_list(key) or is_bitstring(key) ->
-        size = 
-          if is_list(key) do 
+        size =
+          if is_list(key) do
             length(key)
           else
             String.length(key)
           end
 
         case size do
-          32 -> 
+          32 ->
             "bin"
 
-          33 -> 
+          33 ->
             "bin_compressed"
 
-          64 -> 
+          64 ->
             "hex"
 
-          66 -> 
+          66 ->
             "hex_compressed"
 
           _  ->
@@ -247,11 +315,12 @@ defmodule Exbtc.Core do
     end
   end
 
+  @spec is_privkey(encoded_private_key | native_private_key) :: boolean
   def is_privkey(key) do
     get_privkey_format(key) && true
   end
 
-  @spec decode_privkey(non_neg_integer | charlist | String.t(), String.t()) :: non_neg_integer
+  @spec decode_privkey(encoded_private_key | native_private_key, private_key_format | nil) :: native_private_key
   def decode_privkey(key, format \\ nil) do
     format = format || get_privkey_format(key)
     case format do
@@ -276,12 +345,12 @@ defmodule Exbtc.Core do
       "wif_compressed" ->
         decode(Enum.slice(b58check_to_bin(key), 0..31), 256)
 
-      _ -> 
+      _ ->
         raise "WIF does not represent privkey"
     end
   end
 
-  @spec encode_privkey(non_neg_integer | charlist | String.t(), String.t(), integer) :: charlist | String.t()
+  @spec encode_privkey(encoded_private_key | native_private_key, private_key_format, integer) :: encoded_private_key
   def encode_privkey(key, format, vbyte \\ 0) do
     cond do
       not is_number(key) ->
@@ -308,80 +377,91 @@ defmodule Exbtc.Core do
       format == "wif_compressed" ->
         bin_to_b58check(encode(key, 256, 32) ++ [1], 128 + vbyte)
 
-      true -> 
+      true ->
         raise "not implemented"
     end
   end
 
-  @spec add_pubkeys(charlist | String.t(), charlist | String.t()) :: charlist | String.t()
+  @spec add_pubkeys(encoded_public_key, encoded_public_key) :: encoded_public_key
   def add_pubkeys(p1, p2) do
     {format1, format2} = {get_pubkey_format(p1), get_pubkey_format(p2)}
     encode_pubkey(fast_add(decode_pubkey(p1, format1), decode_pubkey(p2, format2)), format1)
   end
 
+  @spec add_privkeys(encoded_private_key, encoded_private_key) :: encoded_private_key
   def add_privkeys(p1, p2) do
     {format1, format2} = {get_privkey_format(p1), get_privkey_format(p2)}
     encode_privkey(U.mod(decode_privkey(p1, format1) + decode_privkey(p2, format2), @_n), format1)
   end
 
+  @spec add(p1 :: encoded_key, p2 :: encoded_key) :: encoded_private_key | encoded_public_key
   def add(p1, p2) do
     cond do
       is_privkey(p1) ->
         add_privkeys(p1, p2)
 
-      true -> 
+      true ->
         add_pubkeys(p1, p2)
-    end  
+    end
   end
 
+  @spec multiply_privkeys(p1 :: encoded_private_key, p2 :: encoded_private_key) :: encoded_private_key
   def multiply_privkeys(p1, p2) do
     {format1, format2}= {get_privkey_format(p1), get_privkey_format(p2)}
-    encode_privkey(U.mod(decode_privkey(p1, format1) * decode_privkey(p2, format2), @_n), format1)    
+    encode_privkey(U.mod(decode_privkey(p1, format1) * decode_privkey(p2, format2), @_n), format1)
   end
 
-  @spec multiply(charlist | String.t(), charlist | String.t()) :: charlist | String.t()
+  @spec multiply(encoded_public_key, encoded_private_key | native_private_key) :: encoded_public_key | native_public_key
   def multiply(pubkey, privkey) do
     {format1, format2} = {get_pubkey_format(pubkey), get_privkey_format(privkey)}
     {pubkey, privkey} = {decode_pubkey(pubkey, format1), decode_privkey(privkey, format2)}
     {pub0, pub1} = pubkey
     if not is_inf(pubkey) and U.mod(U.power(pub0, 3) + @_b - pub1 * pub1, @_p) != 0 do
       raise "Point not on curve"
-    else 
+    else
       encode_pubkey(fast_multiply(pubkey, privkey), format1)
     end
   end
 
-  @spec divide(charlist | String.t(), charlist | String.t()) :: charlist | String.t()
+  @spec divide(encoded_public_key, encoded_private_key | native_private_key) :: encoded_public_key | native_public_key
   def divide(pubkey, privkey) do
     multiply(pubkey, inv(decode_privkey(privkey), @_n))
   end
 
+  @doc """
+    returns "bin_compressed" or "hex_compressed" version of the public key if possible.
+  """
+  @spec compress(encoded_public_key | native_public_key) :: encoded_public_key
   def compress(pubkey) do
     case get_pubkey_format(pubkey) do
       "bin" ->
-        encode_pubkey(decode_pubkey(pubkey, "bin"), "bin_compressed")        
-      f when f in ["hex", "decimal"] -> 
+        encode_pubkey(decode_pubkey(pubkey, "bin"), "bin_compressed")
+      f when f in ["hex", "decimal"] ->
         encode_pubkey(decode_pubkey(pubkey, f), "hex_compressed")
       _ ->
         pubkey
     end
   end
 
+  @doc """
+    returns the un-compressed version of the public key, i.e. "bin" or "hex"  
+  """
+  @spec decompress(encoded_public_key | native_public_key) :: encoded_public_key
   def decompress(pubkey) do
     case get_pubkey_format(pubkey) do
       "bin_compressed" ->
-        encode_pubkey(decode_pubkey(pubkey, "bin_compressed"), "bin")        
-      f when f in ["hex_compressed", "decimal"] -> 
+        encode_pubkey(decode_pubkey(pubkey, "bin_compressed"), "bin")
+      f when f in ["hex_compressed", "decimal"] ->
         encode_pubkey(decode_pubkey(pubkey, f), "hex")
       _ ->
         pubkey
-    end    
+    end
   end
 
   @spec pubkey_to_address(
-          {non_neg_integer, non_neg_integer} | String.t() | charlist, 
+          native_public_key_pair | encoded_public_key | native_public_key,
           non_neg_integer
-        ) :: String.t()
+        ) :: address
   def pubkey_to_address(key, magicbyte \\ 0) do
     key = if is_tuple(key) do
       encode_pubkey(key, "bin")
@@ -392,7 +472,7 @@ defmodule Exbtc.Core do
     bin_to_b58check(bin_hash160(key), magicbyte)
   end
 
-  @spec privkey_to_pubkey(charlist | String.t()) :: String.t() | charlist
+  @spec privkey_to_pubkey(encoded_private_key | native_private_key) :: encoded_public_key | native_public_key | native_public_key_pair
   def privkey_to_pubkey(key) do
     format = get_privkey_format(key)
     decoded_key = decode_privkey(key, format)
@@ -404,43 +484,47 @@ defmodule Exbtc.Core do
     end
   end
 
-  @spec privkey_to_pubkey(charlist | String.t()) :: String.t() | charlist
+  @spec privkey_to_address(encoded_private_key | native_private_key, integer) :: address
   def privkey_to_address(key, magicbyte \\ 0) do
     pubkey_to_address(privkey_to_pubkey(key), magicbyte)
   end
 
+  @spec is_address(address) :: boolean
   def is_address(address) do
     Regex.match?(~r/^[123mn][a-km-zA-HJ-NP-Z0-9]{26,33}$/, address)
   end
 
-  @spec neg_pubkey(charlist | String.t()) :: charlist | String.t()
+  @spec neg_pubkey(encoded_public_key | native_public_key) :: encoded_public_key
   def neg_pubkey(key) do
     format = get_pubkey_format(key)
     pk = decode_pubkey(key, format)
     encode_pubkey({elem(pk, 0), U.mod(@_p - elem(pk, 1), @_p)}, format)
   end
 
-  @spec neg_privkey(charlist | String.t() | non_neg_integer) :: charlist | String.t()
+  @spec neg_privkey(encoded_private_key | native_private_key) :: encoded_private_key | native_private_key
   def neg_privkey(key) do
     format = get_privkey_format(key)
     pk = decode_privkey(key, format)
     encode_privkey(U.mod(@_n - pk, @_n), format)
   end
 
-  @spec subtract_pubkeys(charlist | String.t(), charlist | String.t()) :: charlist | String.t()
+  @spec subtract_pubkeys(encoded_public_key, encoded_public_key) :: encoded_public_key
   def subtract_pubkeys(p1, p2) do
     {format1, format2} = {get_pubkey_format(p1), get_pubkey_format(p2)}
     k = decode_pubkey(p2, format2)
     encode_pubkey(fast_add(decode_pubkey(p1, format1), {elem(k, 0), U.mod(@_p - elem(k, 1), @_p)}), format1)
   end
 
-  @spec subtract_privkey(charlist | String.t() | non_neg_integer, charlist | String.t() | non_neg_integer) :: charlist | String.t() | non_neg_integer
+  @spec subtract_privkey(encoded_private_key | native_private_key, encoded_private_key | native_private_key) :: encoded_private_key | native_private_key
   def subtract_privkey(p1, p2) do
     {format1, format2} = {get_privkey_format(p1), get_privkey_format(p2)}
     k = decode_privkey(p2, format2)
     encode_privkey(U.mod(decode_privkey(p1, format1) - k, @_n), format1)
   end
 
+  @spec substract(p1 :: encoded_private_key | encoded_public_key | native_private_key | native_public_key, 
+          p2 :: encoded_private_key | encoded_public_key | native_private_key | native_public_key
+        ) :: encoded_private_key | encoded_public_key | native_private_key | native_public_key
   def substract(p1, p2) do
     cond do
       is_privkey(p1) ->
@@ -451,15 +535,11 @@ defmodule Exbtc.Core do
     end
   end
 
-  @doc """
-  if encoding base is 256, return a charlist
-  else return a String.t
-  """
-  @spec encode_pubkey({non_neg_integer, non_neg_integer}, String.t()) :: charlist | String.t()
+  @spec encode_pubkey(native_public_key_pair, public_key_format) :: encoded_public_key | native_public_key_pair
   def encode_pubkey(pub, format) do
     {one, two} = pub
     case format do
-      "decimal" -> 
+      "decimal" ->
         pub
 
       "bin" ->
@@ -474,7 +554,7 @@ defmodule Exbtc.Core do
       "hex_compressed" ->
         "0" <> to_string(2 + U.mod(two, 2)) <> encode(one, 16, 64)
 
-      "bin_electrum" -> 
+      "bin_electrum" ->
         encode(one, 256, 32) ++ encode(two, 256, 32)
 
       "hex_electrum" ->
@@ -485,7 +565,7 @@ defmodule Exbtc.Core do
     end
   end
 
-  @spec decode_pubkey(charlist | String.t(), String.t()) :: {non_neg_integer, non_neg_integer}
+  @spec decode_pubkey(encoded_public_key, public_key_format) :: native_public_key_pair
   def decode_pubkey(pub, format \\ nil ) do
     format = format || get_pubkey_format(pub)
     case format do
@@ -493,9 +573,9 @@ defmodule Exbtc.Core do
         {decode(Enum.slice(pub, 1..32), 256), decode(Enum.slice(pub, 33..64), 256)}
 
       "bin_compressed" ->
-        x = decode(Enum.slice(pub, 1..32), 256)        
+        x = decode(Enum.slice(pub, 1..32), 256)
         beta = U.power(x * x * x + _a() * x + _b(), div(_p() + 1, 4), @_p)
-        y = 
+        y =
           if U.mod(beta + Enum.at(pub, 0), 2) == 1 do
             @_p - beta
           else
@@ -503,13 +583,13 @@ defmodule Exbtc.Core do
           end
         {x, y}
 
-      "hex" -> 
+      "hex" ->
         {decode(String.slice(pub, 2..65), 16), decode(String.slice(pub, 66..129), 16)}
 
       "hex_compressed" ->
         x = decode(String.slice(pub, 2..65), 16)
         beta = U.power(x * x * x + _a() * x + _b(), div(_p() + 1, 4), @_p)
-        y = 
+        y =
           if U.mod(beta + Enum.at(String.to_charlist(pub), 0), 2) == 1 do
             @_p - beta
           else
@@ -532,36 +612,38 @@ defmodule Exbtc.Core do
   # common
   ###############
 
-  @spec bin_hash160(charlist) :: charlist
+  @spec bin_hash160(list(byte)) :: list(byte)
   def bin_hash160(chars) do
     tmp = :crypto.hash(:sha256, chars)
     :binary.bin_to_list(:crypto.hash(:ripemd160, tmp))
   end
 
-  @spec bin_sha256(charlist) :: charlist
+  @spec bin_sha256(list(byte)) :: list(byte)
   def bin_sha256(chars) do
     :binary.bin_to_list(:crypto.hash(:sha256, chars))
   end
 
   @doc """
-  iex> C.sha256('784734adfids')
-  "ae616f5c8f6d338e4905f6170a90a231d0c89470a94b28e894a83aef90975557"
+    iex> C.sha256('784734adfids')
+    "ae616f5c8f6d338e4905f6170a90a231d0c89470a94b28e894a83aef90975557"
   """
+  @spec sha256(list(byte) | bitstring | binary | String.t()) :: String.t()
   def sha256(chars) do
     bytes_to_hex_string(:crypto.hash(:sha256, chars))
   end
 
+  @spec bin_ripemd160(list(byte) | bitstring | binary | String.t()) :: list(byte)
   def bin_ripemd160(chars) do
     :binary.bin_to_list(:crypto.hash(:ripemd160, chars))
   end
 
-  @spec b58check_to_bin(charlist) :: charlist
+  @spec b58check_to_bin(hex_encoded_key | wif_encoded_key) :: binary_encoded_key
   def b58check_to_bin(key) do
     leadingzbytes = case Regex.named_captures(~r/^(?<ones>1*)/, key) do
-      %{"ones" => d} -> 
+      %{"ones" => d} ->
         String.length(d)
 
-      _ -> 
+      _ ->
         0
     end
     data = U.replicate(leadingzbytes, 0) ++ changebase(key, 58, 256)
@@ -571,28 +653,28 @@ defmodule Exbtc.Core do
       Enum.slice(data, 1..size-5)
     else
       raise "Assertion failed for bin_double_sha256 #{key}"
-    end      
+    end
   end
 
-  def _bin_to_b58check(chars, 0), do: [ 0 ] ++ chars
+  defp _bin_to_b58check(chars, 0), do: [ 0 ] ++ chars
 
-  def _bin_to_b58check(chars, magic_byte) do
+  defp _bin_to_b58check(chars, magic_byte) do
     r = U.mod(magic_byte, 256)
     magic_byte = div(magic_byte, 256)
     cond do
       magic_byte > 0 ->
         _bin_to_b58check([r] ++ chars, magic_byte)
 
-      true -> 
+      true ->
         [r] ++ chars
     end
   end
-  
-  @spec bin_to_b58check(charlist, integer) :: charlist
+
+  @spec bin_to_b58check(binary_encoded_key, integer) :: binary_encoded_key
   def bin_to_b58check(chars, magic_byte \\ 0) do
     chars = _bin_to_b58check(chars, magic_byte)
     leadingzbytes = case Enum.find_index(chars, fn x -> x != 0 end) do
-      nil -> 
+      nil ->
         0
 
       idx ->
@@ -602,30 +684,27 @@ defmodule Exbtc.Core do
     U.replicate(leadingzbytes, "1") <> changebase(chars ++ checksum, 256, 58)
   end
 
-  @doc """
-  return hexdigest instead of binary digest
-  """
-  @spec bin_double_sha256(charlist) :: charlist
+  @spec bin_double_sha256(list(byte) | binary | bitstring | String.t()) :: list(byte)
   def bin_double_sha256(chars) do
     hash = :crypto.hash(:sha256, chars)
-    # hash is <<118, 134, ... >> 
+    # hash is <<118, 134, ... >>
     :binary.bin_to_list(:crypto.hash(:sha256, hash))
   end
 
-  @spec bin_slowsha(charlist) :: charlist
+  @spec bin_slowsha(list(byte)) :: list(byte)
   def bin_slowsha(chars) do
     Stream.iterate(chars, &(:binary.bin_to_list(:crypto.hash(:sha256, &1 ++ chars)))) |> Enum.at(100000)
   end
 
-  @spec slowsha(charlist) :: String.t()
+  @spec slowsha(list(byte)) :: String.t()
   def slowsha(chars) do
     bytes_to_hex_string(:binary.list_to_bin(bin_slowsha(chars)))
   end
 
-  @spec hash_to_int(String.t() | charlist) :: integer
+  @spec hash_to_int(String.t() | list(byte)) :: integer
   def hash_to_int(x) do
-    size = 
-      if is_list(x) do 
+    size =
+      if is_list(x) do
         length(x)
       else
         String.length(x)
@@ -634,42 +713,43 @@ defmodule Exbtc.Core do
       n when n == 40 or n == 64 ->
         decode(x, 16)
 
-      _ -> 
+      _ ->
         decode(x, 256)
-    end  
+    end
   end
 
-  @spec num_to_var_int(integer) :: charlist
+  @spec num_to_var_int(integer) :: list(byte)
   def num_to_var_int(x) do
     cond do
       x < 253 ->
         [x]
 
-      x < 65536 -> 
+      x < 65536 ->
         [253] ++ Enum.reverse(encode(x, 256, 2))
 
       x < 4294967296 ->
         [254] ++ Enum.reverse(encode(x, 256, 4))
 
-      true -> 
+      true ->
         [255] ++ Enum.reverse(encode(x, 256, 8))
     end
   end
 
   @spec random_key() :: String.t()
   def random_key() do
-    (:crypto.strong_rand_bytes(32) |> :binary.bin_to_list) ++ 
-      Integer.to_charlist(:rand.uniform(U.power(2,256))) ++ 
+    (:crypto.strong_rand_bytes(32) |> :binary.bin_to_list) ++
+      Integer.to_charlist(:rand.uniform(U.power(2,256))) ++
       Integer.to_charlist(System.system_time(:microsecond))
     |> sha256
   end
 
-  @spec electrum_sig_hash(String.t) :: charlist
+  @spec electrum_sig_hash(String.t()) :: list(byte)
   def electrum_sig_hash(message) do
     [24] ++ 'Bitcoin Signed Message:\n' ++ num_to_var_int(String.length(message)) ++ String.to_charlist(message)
     |> bin_double_sha256
   end
 
+  @spec random_electrum_seed() :: String.t()
   def random_electrum_seed() do
     random_key() |> String.slice(0..31)
   end
@@ -678,14 +758,11 @@ defmodule Exbtc.Core do
   # EDCSA
   #
 
-  @doc """
-    use :binary.list_to_bin, not List.to_string which expects utf-8 codepoints
-  """
   @spec encode_sig(integer, integer, integer) :: String.t()
   def encode_sig(v, r, s) do
     {vb, rb, sb} = {[v], encode(r, 256), encode(s, 256)}
     vb ++ U.replicate(32 - length(rb), 0) ++ rb ++ U.replicate(32 - length(sb), 0) ++ sb
-    |> :binary.list_to_bin 
+    |> :binary.list_to_bin # use :binary.list_to_bin, not List.to_string which expects utf-8 codepoints
     |> Base.encode64
   end
 
@@ -733,7 +810,7 @@ defmodule Exbtc.Core do
     end
   end
 
-  @spec ecdsa_raw_verify(charlist, {non_neg_integer, non_neg_integer, non_neg_integer}, String.t() | pair) :: boolean
+  @spec ecdsa_raw_verify(list(byte), {non_neg_integer, non_neg_integer, non_neg_integer}, String.t() | pair) :: boolean
   def ecdsa_raw_verify(msg_hash, {v, r, s}, pubkey) do
     if not (v >= 27 and v <= 34) do
       false
@@ -752,7 +829,7 @@ defmodule Exbtc.Core do
   end
 
   @doc """
-    recover the public key  
+    recover the public key
   """
   @spec ecdsa_raw_recover(charlist, {non_neg_integer, non_neg_integer, non_neg_integer}) :: pair
   def ecdsa_raw_recover(msg_hash, {v, r, s}) do
@@ -794,10 +871,10 @@ defmodule Exbtc.Core do
   @spec get_version_byte(String.t()) :: integer
   def get_version_byte(address) do
     leadingzbytes = case Regex.named_captures(~r/^(?<ones>1*)/, address) do
-      %{"ones" => d} -> 
+      %{"ones" => d} ->
         String.length(d)
 
-      _ -> 
+      _ ->
         0
     end
     data = U.replicate(leadingzbytes, 0) ++ changebase(address, 58, 256)
@@ -806,7 +883,7 @@ defmodule Exbtc.Core do
       raise "Assertion failed for get_version_byte #{address}"
     else
       Enum.at(data, 0)
-    end      
+    end
   end
 
   @spec ecdsa_verify_address(String.t(), String.t(), String.t()) :: boolean
@@ -835,16 +912,19 @@ defmodule Exbtc.Core do
     10 => '0123456789',
     16 => '0123456789abcdef',
     32 => 'abcdefghijklmnopqrstuvwxyz234567',
-    58 => '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz', 
+    58 => '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     256 => 255..0 |> Enum.reduce([], fn(x, acc) -> [ x | acc ] end)
   }
 
-  @doc """
-  use charlist to represent code strings
+  @typedoc """
+    use charlist to represent code strings
   """
+  @type code_string :: charlist
   def code_strings, do: @code_strings
 
-  @spec get_code_string(integer) :: charlist
+  @type code_base :: 2 | 10 | 16 | 32 | 58 | 256
+
+  @spec get_code_string(integer) :: code_string
   def get_code_string(base) do
     if base in Map.keys(@code_strings) do
       Map.get(@code_strings, base)
@@ -854,13 +934,22 @@ defmodule Exbtc.Core do
   end
 
   @spec _encode(non_neg_integer, integer, charlist, list) :: charlist
-  def _encode(0, _, _, acc), do: acc
-  def _encode(val, base, code_str, acc) do
+  defp _encode(0, _, _, acc), do: acc
+  defp _encode(val, base, code_str, acc) do
     code = Enum.at(code_str, U.mod(val, base))
     _encode(div(val, base), base, code_str, [ code | acc ])
   end
 
-  @spec encode(non_neg_integer, integer, pos_integer) :: String.t() | charlist
+  @doc """
+    anything non base 256 is encoded as a string format of the target chars (base 16, base 10 or base 2);
+    base 256 is encoded as a list(byte)
+    
+      iex> prime_70 = 4669523849932130508876392554713407521319117239637943224980015676156491
+      iex> assert encode(prime_70, 58) == "8s3gRRbpi7NyJH3sudQTtsygDHDyzzB5q3Xc6svA"
+      iex> assert encode(prime_70, 32) == "cwthr5r3cy4jn6as3oouomr3ondgjigwie45geqegagy2sl"
+      iex> assert encode(prime_70, 256) == [173, 51, 199, 177, 216, 177, 196, 183, 192, 150, 220, 234, 57, 145, 219, 154, 51, 37, 6, 178, 9, 206, 152, 144, 33, 128, 108, 106, 75]  
+  """
+  @spec encode(non_neg_integer, integer, pos_integer) :: String.t() | list(byte)
   def encode(val, base, minlen \\ 0) do
     code_str = get_code_string(base)
     results_bytes = _encode(val, base, code_str, [])
@@ -872,13 +961,13 @@ defmodule Exbtc.Core do
        _  -> ?0
     end
 
-    results_bytes = cond do 
-      pad_size > 0 -> 
+    results_bytes = cond do
+      pad_size > 0 ->
         U.replicate(pad_size, padding_element) ++ results_bytes
-      true -> 
+      true ->
         results_bytes
     end
-    
+
     if base == 256 do
       results_bytes
     else
@@ -887,21 +976,28 @@ defmodule Exbtc.Core do
   end
 
   @spec _decode(charlist, integer, charlist, non_neg_integer) :: non_neg_integer
-  def _decode([], _, _, acc), do: acc
-  def _decode(chars, base, code_str, acc) do
+  defp _decode([], _, _, acc), do: acc
+  defp _decode(chars, base, code_str, acc) do
     [ch | tail ] = chars
     acc = acc * base
     acc = acc + Enum.find_index(code_str, fn(c) -> c == ch end)
     _decode(tail, base, code_str, acc)
   end
 
-  @spec decode(String.t | charlist, integer) :: non_neg_integer
+  @doc """
+    Decode a base-N encoded string into the equivalent integer
+
+      iex> prime_70 = 4669523849932130508876392554713407521319117239637943224980015676156491
+      iex> assert decode("8s3gRRbpi7NyJH3sudQTtsygDHDyzzB5q3Xc6svA", 58) == prime_70
+      iex> assert decode("11111100101010110000110110010111001110001101001111111101010000101", 2) == prime_20
+  """
+  @spec decode(String.t() | list(byte), code_base) :: non_neg_integer
   def decode(val, base) do
     code_str = get_code_string(base)
     char_list = case base do
       256 ->
         val
-      _ -> 
+      _ ->
         String.to_charlist(val)
     end
     _decode(char_list, base, code_str, 0)
@@ -915,17 +1011,21 @@ defmodule Exbtc.Core do
     end
   end
 
+  @doc """
+    Convert encoded string between different base, e.g. base-2, base-10, base-16 etc
+  """
+  @spec changebase(str :: String.t() | list(byte), from :: code_base, to :: code_base, minlen :: integer) :: String.t() | list(byte)
   def changebase(str, from, to, minlen \\ 0) do
     cond do
       from == to ->
         lpad(str, String.at(List.to_string(get_code_string(from)), 0), minlen)
-      true -> 
+      true ->
         encode(decode(str, from), to, minlen)
     end
   end
 
   @doc """
-  the term `bytes` in Python 3 is used as `charlist` in naming the method and argument here
+    the term `bytes` in Python 3 is used as `charlist` in naming the method and argument here
   """
   def from_string_to_bytes(s) do
     String.to_charlist(s)
