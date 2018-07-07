@@ -11,8 +11,6 @@ iex(1)> alias Exbtc.Core, as: BtcCore
 Exbtc.Core
 iex(2)> private_key_hex = "3aba4162c7251c891207b747840551a71939b0de081f85c4e44cf7c13e41daa6"
 "3aba4162c7251c891207b747840551a71939b0de081f85c4e44cf7c13e41daa6"
-iex(3)> decoded_private_key = BtcCore.decode_privkey(private_key_hex)
-26563230048437957592232553826663696440606756685920117476832299673293013768870
 iex(4)> private_key = BtcCore.decode_privkey(private_key_hex)
 26563230048437957592232553826663696440606756685920117476832299673293013768870
 iex(5)> private_key_wif = BtcCore.encode_privkey(private_key, "wif")
@@ -24,7 +22,7 @@ iex(7)> private_key_hex_compressed = BtcCore.encode_privkey(private_key, "hex_co
 iex(8)> pub_key = BtcCore.privkey_to_pubkey(private_key)
 {41637322786646325214887832269588396900663353932545912953362782457239403430124,
  16388935128781238405526710466724741593761085120864331449066658622400339362166}
-iex(9)> pub_key = BtcCore.privkey_to_address(private_key)
+iex(9)> address = BtcCore.privkey_to_address(private_key)
 "1thMirt546nngXqyPEz532S8fLwbozud8"
 iex(10)> pub_key = BtcCore.privkey_to_pubkey(private_key_wif)
 "045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d44bd7356d6a53c495737dd96295e2a9374bf5f02ebfc176"
